@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { DuplicateBanner } from '@/components/shared/duplicate-banner'
 import {
   LayoutDashboard,
   Upload,
@@ -126,6 +127,7 @@ export function AppShell({ session, children }: AppShellProps) {
 
       {/* Main content */}
       <main className="flex-1 flex flex-col overflow-hidden">
+        <DuplicateBanner />
         <div className="flex-1 overflow-y-auto">
           {children}
         </div>
