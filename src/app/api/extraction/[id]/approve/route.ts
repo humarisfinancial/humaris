@@ -3,6 +3,8 @@ import { requireSession } from '@/lib/auth/session'
 import { permissions } from '@/lib/rbac/permissions'
 import { ExtractionRepository } from '@/lib/db/repositories/extraction-repository'
 import { DocumentRepository } from '@/lib/db/repositories/document-repository'
+import { LedgerRepository } from '@/lib/db/repositories/ledger-repository'
+import { ChartOfAccountsRepository } from '@/lib/db/repositories/chart-of-accounts-repository'
 import { generateRenamedFilename, getFileExtension } from '@/lib/documents/renaming'
 
 export async function POST(
@@ -45,6 +47,49 @@ export async function POST(
       }
 
       await DocumentRepository.update(document.id, session.org.id, updates as never)
+    }
+
+    // Create ledger entry for the approved extraction
+    if (record.amount && record.amount > 0 && document) {
+      try {
+        // Determine account based on doc type — default to Accounts Payable (2010)
+        // or find the matching expense account
+        const docTypeToAccountCode: Record<string, string> = {
+          invoice: '2010',     // Accounts Payable
+          receipt: '6900',     // Other Expenses
+          expense_report: '6900',
+          payroll_report: '6010', // Payroll
+          revenue_report: '4010', // Product Sales
+          bank_statement: '1020', // Checking Account
+        }
+        const targetCode = docTypeToAccountCode[document.doc_type ?? ''] ?? '6900'
+
+        const accounts = await ChartOfAccountsRepository.list(session.org.id)
+        const targetAccount = accounts.find(a => a.code === targetCode)
+
+        if (targetAccount) {
+          const isRevenue = targetAccount.type === 'revenue'
+          await LedgerRepository.create({
+            org_id: session.org.id,
+            extracted_record_id: record.id,
+            account_id: targetAccount.id,
+            source_doc_id: document.id,
+            entry_date: record.transaction_date ?? new Date().toISOString().split('T')[0],
+            description: [
+              record.vendor_name,
+              record.invoice_number ? `#${record.invoice_number}` : null,
+              document.doc_type?.replace(/_/g, ' '),
+            ].filter(Boolean).join(' — '),
+            debit: isRevenue ? 0 : record.amount,
+            credit: isRevenue ? record.amount : 0,
+            is_manual: false,
+            created_by: session.id,
+          })
+        }
+      } catch {
+        // Non-fatal — extraction is approved, ledger entry can be added manually
+        console.warn('[Ledger] Failed to auto-create ledger entry for extraction', record.id)
+      }
     }
 
     return NextResponse.json({ record: approved })
