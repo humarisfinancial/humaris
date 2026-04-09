@@ -1,0 +1,92 @@
+'use client'
+
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import type { ExtractedRecord, PaginatedResult } from '@/types'
+
+export function useExtractionRecord(id: string) {
+  return useQuery<ExtractedRecord>({
+    queryKey: ['extraction', id],
+    queryFn: () => fetch(`/api/extraction/${id}`).then(r => r.json()),
+    enabled: !!id,
+  })
+}
+
+export function useExtractionByDocument(documentId: string) {
+  return useQuery<ExtractedRecord | null>({
+    queryKey: ['extraction', 'by-doc', documentId],
+    queryFn: async () => {
+      const res = await fetch(`/api/extraction/review`)
+      const data: PaginatedResult<ExtractedRecord> = await res.json()
+      return data.items.find(r => r.document_id === documentId) ?? null
+    },
+    enabled: !!documentId,
+  })
+}
+
+export function useReviewQueue(page = 1) {
+  return useQuery<PaginatedResult<ExtractedRecord>>({
+    queryKey: ['extraction', 'review', page],
+    queryFn: () => fetch(`/api/extraction/review?page=${page}`).then(r => r.json()),
+  })
+}
+
+export function useReviewQueueCount() {
+  return useQuery<number>({
+    queryKey: ['extraction', 'review', 'count'],
+    queryFn: () =>
+      fetch('/api/extraction/review').then(r => r.json()).then(d => d.total ?? 0),
+    refetchInterval: 60_000,
+  })
+}
+
+export function useProcessDocument() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (documentId: string) =>
+      fetch(`/api/extraction/process/${documentId}`, { method: 'POST' }).then(r => r.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['documents'] })
+      queryClient.invalidateQueries({ queryKey: ['extraction'] })
+    },
+  })
+}
+
+export function useUpdateExtraction() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, updates }: { id: string; updates: Partial<ExtractedRecord> }) =>
+      fetch(`/api/extraction/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      }).then(r => r.json()),
+    onSuccess: (_data, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ['extraction', id] })
+      queryClient.invalidateQueries({ queryKey: ['extraction', 'review'] })
+    },
+  })
+}
+
+export function useApproveExtraction() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) =>
+      fetch(`/api/extraction/${id}/approve`, { method: 'POST' }).then(r => r.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['extraction'] })
+      queryClient.invalidateQueries({ queryKey: ['documents'] })
+    },
+  })
+}
+
+export function useRejectExtraction() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) =>
+      fetch(`/api/extraction/${id}/reject`, { method: 'POST' }).then(r => r.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['extraction'] })
+      queryClient.invalidateQueries({ queryKey: ['documents'] })
+    },
+  })
+}

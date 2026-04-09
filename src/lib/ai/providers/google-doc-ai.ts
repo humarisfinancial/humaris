@@ -9,32 +9,35 @@ import type { DocumentType } from '@/types'
  * 1. Create a processor in Google Cloud Console (Document AI)
  * 2. Set GOOGLE_CLOUD_PROJECT_ID, GOOGLE_DOCUMENT_AI_PROCESSOR_ID
  * 3. Set GOOGLE_APPLICATION_CREDENTIALS to your service account JSON path
+ *
+ * If credentials are not configured, falls back to MockExtractionProvider.
  */
 export class GoogleDocumentAIProvider implements ExtractionProvider {
   private projectId = process.env.GOOGLE_CLOUD_PROJECT_ID
   private processorId = process.env.GOOGLE_DOCUMENT_AI_PROCESSOR_ID
   private location = 'us'
 
+  private get isConfigured(): boolean {
+    return !!(this.projectId && this.processorId)
+  }
+
   async classify(fileBuffer: Buffer, mimeType: string): Promise<DocumentType> {
-    // Keyword-based classification from the document text extracted by Document AI
+    if (!this.isConfigured) {
+      return new MockExtractionProvider().classify(fileBuffer, mimeType)
+    }
+
     const text = await this.extractRawText(fileBuffer, mimeType)
     return classifyFromText(text)
   }
 
   async extract(fileBuffer: Buffer, mimeType: string, docType: DocumentType) {
-    if (!this.projectId || !this.processorId) {
-      throw new Error(
-        'Google Document AI not configured. Set GOOGLE_CLOUD_PROJECT_ID and GOOGLE_DOCUMENT_AI_PROCESSOR_ID.'
-      )
+    if (!this.isConfigured) {
+      console.warn('[Extraction] Google Document AI not configured — using mock extractor. Set GOOGLE_CLOUD_PROJECT_ID and GOOGLE_DOCUMENT_AI_PROCESSOR_ID to enable real extraction.')
+      return new MockExtractionProvider().extract(fileBuffer, mimeType, docType)
     }
 
-    // @ts-expect-error — optional peer dependency, install when configuring Google Document AI
-    const { DocumentProcessorServiceClient } = await import('@google-cloud/documentai').catch(() => {
-      throw new Error('Install @google-cloud/documentai: npm install @google-cloud/documentai')
-    })
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const client = new (DocumentProcessorServiceClient as any)()
+    const { DocumentProcessorServiceClient } = await import('@google-cloud/documentai')
+    const client = new DocumentProcessorServiceClient()
     const processorName = `projects/${this.projectId}/locations/${this.location}/processors/${this.processorId}`
 
     const [result] = await client.processDocument({
@@ -52,14 +55,9 @@ export class GoogleDocumentAIProvider implements ExtractionProvider {
   }
 
   private async extractRawText(fileBuffer: Buffer, mimeType: string): Promise<string> {
-    if (!this.projectId || !this.processorId) {
-      return ''
-    }
     try {
-      // @ts-expect-error — optional peer dependency
       const { DocumentProcessorServiceClient } = await import('@google-cloud/documentai')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const client = new (DocumentProcessorServiceClient as any)()
+      const client = new DocumentProcessorServiceClient()
       const processorName = `projects/${this.projectId}/locations/${this.location}/processors/${this.processorId}`
       const [result] = await client.processDocument({
         name: processorName,
@@ -109,6 +107,11 @@ function parseDocumentAIResponse(document: any, _docType: DocumentType) {
       }
     })
 
+  const confidences = (entities as any[]).map(e => e.confidence ?? 0)
+  const avgConfidence = confidences.length
+    ? confidences.reduce((a, b) => a + b, 0) / confidences.length
+    : null
+
   return {
     vendor_name: getField('supplier_name') ?? getField('vendor_name') ?? null,
     transaction_date: getField('invoice_date') ?? getField('receipt_date') ?? null,
@@ -118,7 +121,33 @@ function parseDocumentAIResponse(document: any, _docType: DocumentType) {
     payment_terms: getField('payment_terms') ?? null,
     line_items: lineItems,
     raw_fields: { entities: entities.map((e: any) => ({ type: e.type, value: e.mentionText })) },
-    confidence_score: document.pages?.[0]?.blocks?.[0]?.layout?.confidence ?? null,
+    confidence_score: avgConfidence,
     extraction_provider: 'google-document-ai',
+  }
+}
+
+/**
+ * Mock provider — used when Google Document AI is not configured.
+ * Returns plausible-looking stub data so the review flow works end-to-end.
+ * Confidence is set low (0.5) so all records go to the review queue.
+ */
+export class MockExtractionProvider implements ExtractionProvider {
+  async classify(_fileBuffer: Buffer, _mimeType: string): Promise<DocumentType> {
+    return 'invoice'
+  }
+
+  async extract(_fileBuffer: Buffer, _mimeType: string, docType: DocumentType) {
+    return {
+      vendor_name: null,
+      transaction_date: new Date().toISOString().split('T')[0],
+      amount: null,
+      tax_amount: null,
+      invoice_number: null,
+      payment_terms: null,
+      line_items: [],
+      raw_fields: { mock: true, note: 'Configure Google Document AI for real extraction' },
+      confidence_score: 0.5, // Forces review queue
+      extraction_provider: 'mock',
+    }
   }
 }

@@ -6,9 +6,10 @@ import { DocumentRepository } from '@/lib/db/repositories/document-repository'
 import { classifyDocumentType, getFolderForDocType } from '@/lib/documents/classification'
 import { generateRenamedFilename, getFileExtension } from '@/lib/documents/renaming'
 import { detectDuplicates, computeFileHash } from '@/lib/documents/duplicate-detection'
+import { runExtractionPipeline } from '@/lib/extraction/pipeline'
 
 export const runtime = 'nodejs'
-export const maxDuration = 30
+export const maxDuration = 60
 
 export async function POST(request: NextRequest) {
   try {
@@ -80,8 +81,19 @@ export async function POST(request: NextRequest) {
         },
       })
 
+      // Auto-trigger extraction for non-duplicate documents
+      let extraction = null
+      if (duplicates.length === 0) {
+        try {
+          extraction = await runExtractionPipeline(document, session.org.id)
+        } catch {
+          // Non-fatal — document is saved, extraction can be retried manually
+        }
+      }
+
       results.push({
         document,
+        extraction,
         duplicates: duplicates.map(d => ({
           matched_document: d.document,
           confidence: d.confidence,

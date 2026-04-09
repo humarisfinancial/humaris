@@ -13,6 +13,7 @@ import {
   Settings,
   LogOut,
   ChevronRight,
+  ClipboardCheck,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -29,6 +30,7 @@ const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/upload', label: 'Upload Files', icon: Upload },
   { href: '/documents', label: 'Documents', icon: FolderOpen },
+  { href: '/extraction', label: 'Review Queue', icon: ClipboardCheck },
   { href: '/ledger', label: 'Ledger', icon: BookOpen },
   { href: '/templates', label: 'Templates', icon: FileText },
   { href: '/search', label: 'Search', icon: Search },
