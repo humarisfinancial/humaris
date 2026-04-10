@@ -31,13 +31,15 @@ export const StatementRepository = {
     const supabase = await createServerSupabaseClient()
 
     // Delete existing cache entry first, then insert fresh
-    await supabase
+    const { error: deleteError } = await supabase
       .from('financial_statements')
       .delete()
       .eq('org_id', orgId)
       .eq('type', type)
       .eq('period_start', periodStart)
       .eq('period_end', periodEnd)
+
+    if (deleteError) throw new Error(`Failed to clear existing cache: ${deleteError.message}`)
 
     const { data: row, error } = await supabase
       .from('financial_statements')

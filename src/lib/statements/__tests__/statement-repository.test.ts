@@ -53,4 +53,24 @@ describe('StatementRepository', () => {
     expect(mockChain.delete).toHaveBeenCalled()
     expect(mockChain.eq).toHaveBeenCalledWith('org_id', MOCK_ORG_ID)
   })
+
+  it('saveCache inserts and returns the saved statement', async () => {
+    // delete returns no error
+    mockChain.eq.mockReturnThis()
+    // insert chain needs select and single
+    const insertChain = {
+      select: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({
+        data: { id: 'stmt-1', org_id: MOCK_ORG_ID, type: 'pnl', period_start: '2026-01-01', period_end: '2026-03-31', data: MOCK_DATA, generated_at: '2026-04-01T00:00:00Z' },
+        error: null,
+      }),
+    }
+    mockChain.insert = vi.fn().mockReturnValue(insertChain)
+
+    const result = await StatementRepository.saveCache(
+      MOCK_ORG_ID, 'pnl', '2026-01-01', '2026-03-31', MOCK_DATA, 'user-1'
+    )
+    expect(result.id).toBe('stmt-1')
+    expect(result.data).toEqual(MOCK_DATA)
+  })
 })
