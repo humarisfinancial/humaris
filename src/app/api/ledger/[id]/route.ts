@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { requireSession } from '@/lib/auth/session'
 import { permissions } from '@/lib/rbac/permissions'
 import { LedgerRepository } from '@/lib/db/repositories/ledger-repository'
+import { StatementRepository } from '@/lib/db/repositories/statement-repository'
 
 export const runtime = 'nodejs'
 
@@ -62,6 +63,7 @@ export async function PATCH(
     if (category !== undefined) updates.category = category
 
     const entry = await LedgerRepository.update(id, session.org.id, updates)
+    await StatementRepository.clearCacheForOrg(session.org.id)
     return NextResponse.json({ entry })
   } catch (err) {
     return NextResponse.json(
@@ -83,6 +85,7 @@ export async function DELETE(
 
     const { id } = await params
     await LedgerRepository.delete(id, session.org.id)
+    await StatementRepository.clearCacheForOrg(session.org.id)
     return NextResponse.json({ success: true })
   } catch (err) {
     return NextResponse.json(

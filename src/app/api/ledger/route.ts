@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { requireSession } from '@/lib/auth/session'
 import { permissions } from '@/lib/rbac/permissions'
 import { LedgerRepository } from '@/lib/db/repositories/ledger-repository'
+import { StatementRepository } from '@/lib/db/repositories/statement-repository'
 
 export const runtime = 'nodejs'
 
@@ -72,6 +73,8 @@ export async function POST(request: NextRequest) {
       is_manual: true,
       created_by: session.id,
     })
+
+    await StatementRepository.clearCacheForOrg(session.org.id)
 
     return NextResponse.json({ entry }, { status: 201 })
   } catch (err) {
