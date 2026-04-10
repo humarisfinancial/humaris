@@ -189,6 +189,9 @@ export interface StatementSection {
   label: string
   code?: string
   amount: number
+  entry_id?: string
+  source_doc_id?: string | null
+  entry_date?: string
   children?: StatementSection[]
 }
 
