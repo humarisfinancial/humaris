@@ -47,6 +47,10 @@ export const postgresSearchProvider: SearchProvider = {
         .limit(limit),
     ])
 
+    if (docsResult.error) throw new Error(docsResult.error.message)
+    if (entriesResult.error) throw new Error(entriesResult.error.message)
+    if (vendorsResult.error) throw new Error(vendorsResult.error.message)
+
     const results: SearchResult[] = []
 
     for (const d of (docsResult.data ?? [])) {

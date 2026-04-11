@@ -107,4 +107,19 @@ describe('postgresSearchProvider.search', () => {
     const results = await postgresSearchProvider.search('nonexistent', 'org1')
     expect(results).toEqual([])
   })
+
+  it('throws when Supabase returns an error on document query', async () => {
+    function makeErrorChain() {
+      const chain: Record<string, unknown> = {}
+      for (const m of ['select', 'eq', 'textSearch', 'ilike', 'order']) {
+        chain[m] = vi.fn().mockReturnValue(chain)
+      }
+      chain.limit = vi.fn().mockResolvedValue({ data: null, error: { message: 'permission denied' } })
+      return chain
+    }
+    ;(createServerSupabaseClient as ReturnType<typeof vi.fn>).mockResolvedValue({
+      from: vi.fn().mockReturnValue(makeErrorChain()),
+    })
+    await expect(postgresSearchProvider.search('test', 'org1')).rejects.toThrow('permission denied')
+  })
 })
