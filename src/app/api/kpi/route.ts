@@ -6,10 +6,12 @@ import { computeKPIs, getMomPrior, getYoyPrior } from '@/lib/kpi/compute'
 
 export const runtime = 'nodejs'
 
-export async function GET(request: NextRequest) {
-  try {
-    const session = await requireSession()
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
 
+export async function GET(request: NextRequest) {
+  const session = await requireSession()
+
+  try {
     const { searchParams } = new URL(request.url)
     const from = searchParams.get('from')
     const to = searchParams.get('to')
@@ -18,8 +20,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'from and to are required' }, { status: 400 })
     }
 
+    if (!ISO_DATE.test(from) || !ISO_DATE.test(to)) {
+      return NextResponse.json({ error: 'from and to must be YYYY-MM-DD' }, { status: 400 })
+    }
+
     if (!permissions.dashboard.view(session.role)) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
+    }
+
+    if (!session.org) {
+      return NextResponse.json({ error: 'No organization context' }, { status: 400 })
     }
 
     const orgId = session.org.id
@@ -62,8 +72,9 @@ export async function GET(request: NextRequest) {
       generatedAt: new Date().toISOString(),
     })
   } catch (err) {
+    void err
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Failed to load KPIs' },
+      { error: 'Failed to load KPIs' },
       { status: 500 }
     )
   }

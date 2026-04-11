@@ -28,11 +28,17 @@ function getTrailing12Months(): { month: string; from: string; to: string }[] {
 }
 
 export async function GET() {
+  const session = await requireSession()
+
   try {
-    const session = await requireSession()
     if (!permissions.dashboard.view(session.role)) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
     }
+
+    if (!session.org) {
+      return NextResponse.json({ error: 'No organization context' }, { status: 400 })
+    }
+
     const orgId = session.org.id
     const months = getTrailing12Months()
 
@@ -47,8 +53,9 @@ export async function GET() {
 
     return NextResponse.json({ months: result })
   } catch (err) {
+    void err
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Failed to load trend data' },
+      { error: 'Failed to load trend data' },
       { status: 500 }
     )
   }
