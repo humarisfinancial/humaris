@@ -1,5 +1,7 @@
 import { createServerSupabaseClient } from '@/lib/db/server'
-import type { LedgerEntry, PaginatedResult, PaginationParams } from '@/types'
+import type { AccountBalance, LedgerEntry, PaginatedResult, PaginationParams } from '@/types'
+
+export type { AccountBalance } from '@/types'
 
 export interface CreateLedgerEntryInput {
   org_id: string
@@ -30,16 +32,6 @@ export interface LedgerListFilters {
   date_to?: string
   is_manual?: boolean
   search?: string
-}
-
-export interface AccountBalance {
-  account_id: string
-  account_code: string
-  account_name: string
-  account_type: string
-  total_debit: number
-  total_credit: number
-  balance: number
 }
 
 export const LedgerRepository = {
@@ -180,7 +172,7 @@ export const LedgerRepository = {
           account_id: entry.account_id,
           account_code: acc.code,
           account_name: acc.name,
-          account_type: acc.type,
+          account_type: acc.type as AccountBalance['account_type'],
           total_debit: Number(entry.debit),
           total_credit: Number(entry.credit),
           balance: Number(entry.debit) - Number(entry.credit),
