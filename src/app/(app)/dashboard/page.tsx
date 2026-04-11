@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PeriodSelector } from '@/components/statements/period-selector'
@@ -133,11 +134,14 @@ export default function DashboardPage() {
                   momValue={mom?.netCashFlow}
                   yoyValue={yoy?.netCashFlow}
                 />
+                {/* Revenue Growth Rate: value IS the MoM comparison, so no badge */}
                 <KPICard
                   label="Revenue Growth Rate"
                   value={data?.revenueGrowthRate ?? null}
                   format="growth"
                   secondary={growthSecondary}
+                  momValue={null}
+                  yoyValue={null}
                 />
               </>
             )}
@@ -162,9 +166,9 @@ export default function DashboardPage() {
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <p className="text-sm font-medium text-gray-700">No financial data for this period</p>
           <p className="text-sm text-gray-400 mt-1">Add ledger entries to see your KPIs</p>
-          <a href="/ledger" className="mt-4 text-sm font-medium text-gray-900 underline underline-offset-2">
+          <Link href="/ledger" className="mt-4 text-sm font-medium text-gray-900 underline underline-offset-2">
             Go to Ledger
-          </a>
+          </Link>
         </div>
       )}
     </div>
