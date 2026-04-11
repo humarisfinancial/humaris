@@ -249,7 +249,7 @@ export interface AccountBalance {
   account_id: string
   account_code: string
   account_name: string
-  account_type: string
+  account_type: 'revenue' | 'expense' | 'asset' | 'liability' | 'equity'
   total_debit: number
   total_credit: number
   balance: number

@@ -23,6 +23,11 @@ describe('computeKPIs', () => {
     expect(computeKPIs(FIXTURES).netIncome).toBe(5000)
   })
 
+  it('computes net cash flow from operating, investing, and financing activities', () => {
+    // operating (5000) + investing (-5000) + financing (2000) = 2000
+    expect(computeKPIs(FIXTURES).netCashFlow).toBe(2000)
+  })
+
   it('computes total expenses from all expense account debits', () => {
     expect(computeKPIs(FIXTURES).totalExpenses).toBe(5000)
   })
