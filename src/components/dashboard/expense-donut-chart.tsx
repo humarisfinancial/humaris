@@ -40,13 +40,13 @@ export function ExpenseDonutChart({ data }: ExpenseDonutChartProps) {
           dataKey="value"
           strokeWidth={0}
         >
-          {data.map((_, i) => (
-            <Cell key={i} fill={COLORS[i % COLORS.length]} />
+          {data.map((entry, i) => (
+            <Cell key={entry.name} fill={COLORS[i % COLORS.length]} />
           ))}
         </Pie>
         <Tooltip
           formatter={(value, name) => [
-            `${USD.format(value as number)} (${(((value as number) / total) * 100).toFixed(1)}%)`,
+            `${USD.format(value as number)} (${(total > 0 ? ((value as number) / total) * 100 : 0).toFixed(1)}%)`,
             name as string,
           ]}
           contentStyle={{

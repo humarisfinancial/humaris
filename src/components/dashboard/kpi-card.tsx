@@ -78,16 +78,16 @@ export function KPICard({
         {displayValue}
       </p>
       {secondary && <p className="text-xs text-gray-400">{secondary}</p>}
-      {(showMom || showYoy) && (
+      {((showMom && pctChange(value!, momValue!) !== 0) || (showYoy && pctChange(value!, yoyValue!) !== 0)) && (
         <div className="flex flex-wrap gap-1.5">
-          {showMom && (
+          {showMom && pctChange(value!, momValue!) !== 0 && (
             <Badge
               pct={pctChange(value!, momValue!)}
               label="MoM"
               invert={invertBadge}
             />
           )}
-          {showYoy && (
+          {showYoy && pctChange(value!, yoyValue!) !== 0 && (
             <Badge
               pct={pctChange(value!, yoyValue!)}
               label="YoY"
