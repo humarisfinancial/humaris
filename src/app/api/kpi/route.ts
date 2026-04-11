@@ -9,9 +9,6 @@ export const runtime = 'nodejs'
 export async function GET(request: NextRequest) {
   try {
     const session = await requireSession()
-    if (!permissions.dashboard.view(session.role)) {
-      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
-    }
 
     const { searchParams } = new URL(request.url)
     const from = searchParams.get('from')
@@ -19,6 +16,10 @@ export async function GET(request: NextRequest) {
 
     if (!from || !to) {
       return NextResponse.json({ error: 'from and to are required' }, { status: 400 })
+    }
+
+    if (!permissions.dashboard.view(session.role)) {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
     }
 
     const orgId = session.org.id
@@ -45,10 +46,10 @@ export async function GET(request: NextRequest) {
       .sort((a, b) => b.value - a.value)
 
     const fromLabel = new Date(from + 'T00:00:00Z').toLocaleDateString('en-US', {
-      month: 'short', day: 'numeric',
+      month: 'short', day: 'numeric', timeZone: 'UTC',
     })
     const toLabel = new Date(to + 'T00:00:00Z').toLocaleDateString('en-US', {
-      month: 'short', day: 'numeric', year: 'numeric',
+      month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC',
     })
 
     return NextResponse.json({

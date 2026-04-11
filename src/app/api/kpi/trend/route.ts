@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { requireSession } from '@/lib/auth/session'
+import { permissions } from '@/lib/rbac/permissions'
 import { LedgerRepository } from '@/lib/db/repositories/ledger-repository'
 import { computeKPIs } from '@/lib/kpi/compute'
 
@@ -29,6 +30,9 @@ function getTrailing12Months(): { month: string; from: string; to: string }[] {
 export async function GET() {
   try {
     const session = await requireSession()
+    if (!permissions.dashboard.view(session.role)) {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
+    }
     const orgId = session.org.id
     const months = getTrailing12Months()
 
