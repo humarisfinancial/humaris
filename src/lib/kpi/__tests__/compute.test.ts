@@ -44,8 +44,10 @@ describe('computeKPIs', () => {
   it('returns all zeros on empty balances', () => {
     const result = computeKPIs([])
     expect(result.revenue).toBe(0)
+    expect(result.grossProfit).toBe(0)
     expect(result.netIncome).toBe(0)
     expect(result.totalExpenses).toBe(0)
+    expect(result.netCashFlow).toBe(0)
   })
 })
 
