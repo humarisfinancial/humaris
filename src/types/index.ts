@@ -240,3 +240,47 @@ export interface PaginationParams {
   page?: number
   per_page?: number
 }
+
+// ============================================================
+// KPI Dashboard types
+// ============================================================
+
+export interface AccountBalance {
+  account_id: string
+  account_code: string
+  account_name: string
+  account_type: string
+  total_debit: number
+  total_credit: number
+  balance: number
+}
+
+export interface KPISnapshot {
+  revenue: number
+  grossProfit: number
+  netIncome: number
+  totalExpenses: number
+  netCashFlow: number
+  grossMargin: number | null  // null when revenue = 0
+  netMargin: number | null    // null when revenue = 0
+}
+
+export interface KPIResponse {
+  current: KPISnapshot
+  mom: KPISnapshot
+  yoy: KPISnapshot
+  revenueGrowthRate: number | null  // null when mom.revenue = 0
+  expenseBreakdown: { name: string; value: number }[]
+  periodLabel: string
+  generatedAt: string
+}
+
+export interface KPITrendMonth {
+  month: string    // 'YYYY-MM'
+  revenue: number
+  netIncome: number
+}
+
+export interface KPITrendResponse {
+  months: KPITrendMonth[]
+}
