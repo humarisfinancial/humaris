@@ -26,8 +26,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import type { SessionUser } from '@/types'
+import { SearchOverlay } from '@/components/search/search-overlay'
 
-const NAV_ITEMS = [
+const NAV_ITEMS: { href: string; label: string; icon: React.ElementType; hint?: string }[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/upload', label: 'Upload Files', icon: Upload },
   { href: '/documents', label: 'Documents', icon: FolderOpen },
@@ -35,7 +36,7 @@ const NAV_ITEMS = [
   { href: '/ledger', label: 'Ledger', icon: BookOpen },
   { href: '/statements', label: 'Statements', icon: BarChart3 },
   { href: '/templates', label: 'Templates', icon: FileText },
-  { href: '/search', label: 'Search', icon: Search },
+  { href: '/search', label: 'Search', icon: Search, hint: '⌘K' },
   { href: '/settings', label: 'Settings', icon: Settings },
 ]
 
@@ -70,7 +71,7 @@ export function AppShell({ session, children }: AppShellProps) {
 
         {/* Navigation */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+          {NAV_ITEMS.map(({ href, label, icon: Icon, hint }) => {
             const isActive = pathname === href || pathname.startsWith(href + '/')
             return (
               <Link
@@ -85,6 +86,9 @@ export function AppShell({ session, children }: AppShellProps) {
               >
                 <Icon className="w-4 h-4 shrink-0" />
                 {label}
+                {hint && !isActive && (
+                  <span className="ml-auto text-[10px] text-gray-400 font-mono">{hint}</span>
+                )}
                 {isActive && <ChevronRight className="w-3 h-3 ml-auto text-gray-400" />}
               </Link>
             )
@@ -135,6 +139,7 @@ export function AppShell({ session, children }: AppShellProps) {
         <div className="flex-1 overflow-y-auto">
           {children}
         </div>
+        <SearchOverlay />
       </main>
     </div>
   )
