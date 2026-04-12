@@ -31,7 +31,8 @@ export async function GET(request: NextRequest) {
       query: truncatedQuery,
       total: results.length,
     })
-  } catch {
+  } catch (err) {
+    console.error('[Search API] Error:', err)
     return NextResponse.json({ error: 'Search failed' }, { status: 500 })
   }
 }

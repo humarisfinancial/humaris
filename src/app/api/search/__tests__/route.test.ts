@@ -63,4 +63,12 @@ describe('GET /api/search', () => {
     expect(res.status).toBe(500)
     expect((await res.json()).error).toBe('Search failed')
   })
+
+  it('returns 400 when session has no org context', async () => {
+    ;(requireSession as ReturnType<typeof vi.fn>).mockResolvedValue({ org: null, role: 'owner', user: { id: 'u1' } })
+    const req = new NextRequest('http://localhost/api/search?q=invoice')
+    const res = await GET(req)
+    expect(res.status).toBe(400)
+    expect((await res.json()).error).toBe('No organization context')
+  })
 })
