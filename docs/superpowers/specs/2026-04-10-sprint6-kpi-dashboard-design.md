@@ -1,4 +1,4 @@
-# Sprint 6 — KPI Dashboard: Design Spec
+looks good# Sprint 6 — KPI Dashboard: Design Spec
 
 **Date:** 2026-04-10
 **Sprint:** 6 of 8
