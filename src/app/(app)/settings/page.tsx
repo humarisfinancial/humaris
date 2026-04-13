@@ -1,8 +1,29 @@
-export default function SettingsPage() {
+import { redirect } from 'next/navigation'
+import { requireSession } from '@/lib/auth/session'
+import { SettingsShell } from '@/components/settings/settings-shell'
+
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string }>
+}) {
+  const session = await requireSession()
+
+  if (!session.org) redirect('/dashboard')
+
+  const role = session.role
+  const isAdmin = role === 'owner' || role === 'admin'
+  if (!isAdmin) redirect('/dashboard')
+
+  const { tab } = await searchParams
+  const activeTab = tab === 'team' ? 'team' : 'general'
+
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-      <p className="text-gray-500 mt-1">Organization settings and user management — Sprint 8</p>
-    </div>
+    <SettingsShell
+      orgName={session.org.name}
+      userId={session.id}
+      userRole={session.role}
+      initialTab={activeTab}
+    />
   )
 }
