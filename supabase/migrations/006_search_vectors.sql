@@ -1,11 +1,12 @@
 -- Sprint 7: Add generated tsvector columns for full-text search.
 -- These are auto-maintained by Postgres on every insert/update.
 -- No separate indexing pipeline required.
+-- Note: 'pg_catalog.english'::regconfig is required for IMMUTABLE generated columns.
 
 ALTER TABLE documents
   ADD COLUMN IF NOT EXISTS search_vector tsvector
   GENERATED ALWAYS AS (
-    to_tsvector('english',
+    to_tsvector('pg_catalog.english'::regconfig,
       coalesce(renamed_name, '') || ' ' ||
       coalesce(original_name, '') || ' ' ||
       coalesce(doc_type::text, '') || ' ' ||
@@ -15,7 +16,7 @@ ALTER TABLE documents
 ALTER TABLE ledger_entries
   ADD COLUMN IF NOT EXISTS search_vector tsvector
   GENERATED ALWAYS AS (
-    to_tsvector('english',
+    to_tsvector('pg_catalog.english'::regconfig,
       coalesce(description, '') || ' ' ||
       coalesce(category, ''))
   ) STORED;
