@@ -8,8 +8,8 @@ ALTER TABLE documents
     to_tsvector('english',
       coalesce(renamed_name, '') || ' ' ||
       coalesce(original_name, '') || ' ' ||
-      coalesce(doc_type, '') || ' ' ||
-      coalesce(folder, ''))
+      coalesce(doc_type::text, '') || ' ' ||
+      coalesce(folder::text, ''))
   ) STORED;
 
 ALTER TABLE ledger_entries
