@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Upload, FileText, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -27,21 +27,18 @@ export function Dropzone({ onFilesSelected, disabled }: DropzoneProps) {
   const [isDragging, setIsDragging] = useState(false)
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
 
+  useEffect(() => {
+    onFilesSelected(selectedFiles)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedFiles])
+
   const addFiles = useCallback((newFiles: File[]) => {
     const valid = newFiles.filter(f => ACCEPTED_TYPES.includes(f.type))
-    setSelectedFiles(prev => {
-      const merged = [...prev, ...valid]
-      onFilesSelected(merged)
-      return merged
-    })
-  }, [onFilesSelected])
+    setSelectedFiles(prev => [...prev, ...valid])
+  }, [])
 
   const removeFile = (index: number) => {
-    setSelectedFiles(prev => {
-      const next = prev.filter((_, i) => i !== index)
-      onFilesSelected(next)
-      return next
-    })
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index))
   }
 
   const onDrop = useCallback((e: React.DragEvent) => {
