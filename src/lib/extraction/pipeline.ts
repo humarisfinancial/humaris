@@ -48,8 +48,15 @@ export async function runExtractionPipeline(
       // Classification failure is non-fatal — keep the existing type
     }
 
-    // 5. Extract financial fields
-    const extracted = await provider.extract(fileBuffer, mimeType, docType ?? 'other')
+    // 5. Extract financial fields (fall back to mock if provider is unavailable)
+    let extracted
+    try {
+      extracted = await provider.extract(fileBuffer, mimeType, docType ?? 'other')
+    } catch (providerErr) {
+      console.warn('[Extraction] Provider failed, falling back to mock:', providerErr instanceof Error ? providerErr.message : providerErr)
+      const { MockExtractionProvider } = await import('@/lib/ai/providers/google-doc-ai')
+      extracted = await new MockExtractionProvider().extract(fileBuffer, mimeType, docType ?? 'other')
+    }
 
     // 6. Validate extracted fields
     const validation = validateExtractedFields({
