@@ -23,14 +23,17 @@ export interface ExtractionProvider {
  * Get the active extraction provider.
  *
  * EXTRACTION_PROVIDER env var:
- *   'google' (default) → Google Document AI (falls back to mock if unconfigured)
- *   'gpt4o'            → GPT-4o Vision
- *
- * Google Document AI is always the default — it's more cost-effective for
- * high-volume structured document processing.
+ *   'claude' (default) → Claude Vision (claude-sonnet-4-6) — requires ANTHROPIC_API_KEY
+ *   'gpt4o'            → GPT-4o Vision — requires OPENAI_API_KEY
+ *   'google'           → Google Document AI — requires GOOGLE_CLOUD_* vars (falls back to mock)
  */
 export async function getExtractionProvider(): Promise<ExtractionProvider> {
-  const provider = process.env.EXTRACTION_PROVIDER ?? 'google'
+  const provider = process.env.EXTRACTION_PROVIDER ?? 'claude'
+
+  if (provider === 'claude') {
+    const { ClaudeVisionProvider } = await import('./providers/claude-vision')
+    return new ClaudeVisionProvider()
+  }
 
   if (provider === 'gpt4o') {
     const { GPT4oVisionProvider } = await import('./providers/gpt4o-vision')
