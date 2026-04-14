@@ -57,24 +57,39 @@ export class ClaudeVisionProvider implements ExtractionProvider {
   }
 
   private async callClaude(fileBuffer: Buffer, mimeType: string, prompt: string): Promise<string> {
-    // Claude only supports image/* and application/pdf via the Files API
-    // For other types, fall back to text-only prompt
-    const supportedMedia = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf']
-    const isSupported = supportedMedia.includes(mimeType)
+    const imageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+    const isPdf = mimeType === 'application/pdf'
+    const isImage = imageTypes.includes(mimeType)
 
-    const content: Anthropic.MessageParam['content'] = isSupported
-      ? [
-          {
-            type: 'image',
-            source: {
-              type: 'base64',
-              media_type: mimeType as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp',
-              data: fileBuffer.toString('base64'),
-            },
+    let content: Anthropic.MessageParam['content']
+
+    if (isPdf) {
+      content = [
+        {
+          type: 'document',
+          source: {
+            type: 'base64',
+            media_type: 'application/pdf',
+            data: fileBuffer.toString('base64'),
           },
-          { type: 'text', text: prompt },
-        ]
-      : [{ type: 'text', text: prompt }]
+        } as unknown as Anthropic.TextBlockParam,
+        { type: 'text', text: prompt },
+      ]
+    } else if (isImage) {
+      content = [
+        {
+          type: 'image',
+          source: {
+            type: 'base64',
+            media_type: mimeType as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp',
+            data: fileBuffer.toString('base64'),
+          },
+        },
+        { type: 'text', text: prompt },
+      ]
+    } else {
+      content = [{ type: 'text', text: prompt }]
+    }
 
     const message = await this.client.messages.create({
       model: 'claude-sonnet-4-6',
