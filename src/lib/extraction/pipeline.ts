@@ -8,7 +8,7 @@ import { ExtractionRepository } from '@/lib/db/repositories/extraction-repositor
 import { DocumentRepository } from '@/lib/db/repositories/document-repository'
 import { generateRenamedFilename, getFileExtension } from '@/lib/documents/renaming'
 import { classifyDocumentType, getFolderForDocType } from '@/lib/documents/classification'
-import { validateExtractedFields, requiresReview } from '@/lib/extraction/validators'
+import { validateExtractedFields } from '@/lib/extraction/validators'
 import { createServerSupabaseClient } from '@/lib/db/server'
 import type { Document, ExtractionStatus } from '@/types'
 
@@ -67,9 +67,8 @@ export async function runExtractionPipeline(
       line_items: extracted.line_items,
     })
 
-    // 7. Determine status: auto-approve high-confidence, send low-confidence to review
-    const needsReview = requiresReview(extracted.confidence_score) || !validation.valid
-    const recordStatus: ExtractionStatus = needsReview ? 'review' : 'approved'
+    // 7. Always send to review — human approval required before ledger entry is created
+    const recordStatus: ExtractionStatus = 'review'
 
     // 8. Store extraction record
     const record = await ExtractionRepository.create({
@@ -93,8 +92,8 @@ export async function runExtractionPipeline(
       extraction_provider: extracted.extraction_provider ?? 'unknown',
     })
 
-    // 9. Update document status + rename with vendor if extracted
-    const docStatus = needsReview ? 'review_required' : 'extracted'
+    // 9. Update document status to review_required (approval always required)
+    const docStatus = 'review_required'
     const updates: Partial<Document> = {
       status: docStatus,
       doc_type: docType ?? document.doc_type,
@@ -105,8 +104,8 @@ export async function runExtractionPipeline(
       updates.folder = getFolderForDocType(docType)
     }
 
-    // Update renamed_name with vendor info if available
-    if (extracted.vendor_name && !needsReview) {
+    // Update renamed_name with vendor info if available (will be finalized on approval)
+    if (extracted.vendor_name && false) {
       const ext = getFileExtension(document.original_name)
       updates.renamed_name = generateRenamedFilename({
         date: extracted.transaction_date ?? new Date(),
