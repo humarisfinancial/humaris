@@ -55,11 +55,11 @@ export async function POST(
         // Determine account based on doc type — default to Accounts Payable (2010)
         // or find the matching expense account
         const docTypeToAccountCode: Record<string, string> = {
-          invoice: '2010',     // Accounts Payable
-          receipt: '6900',     // Other Expenses
-          expense_report: '6900',
-          payroll_report: '6010', // Payroll
-          revenue_report: '4010', // Product Sales
+          invoice: '6900',        // Other Expenses (expense account so it shows in totals)
+          receipt: '6900',        // Other Expenses
+          expense_report: '6900', // Other Expenses
+          payroll_report: '6010', // Payroll Expenses
+          revenue_report: '4010', // Product Sales (revenue)
           bank_statement: '1020', // Checking Account
         }
         const targetCode = docTypeToAccountCode[document.doc_type ?? ''] ?? '6900'
