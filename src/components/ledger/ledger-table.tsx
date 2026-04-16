@@ -123,7 +123,7 @@ export function LedgerTable() {
               <th className="text-left px-4 py-3 font-medium text-gray-600">Description</th>
               <th className="text-right px-4 py-3 font-medium text-gray-600">Debit</th>
               <th className="text-right px-4 py-3 font-medium text-gray-600">Credit</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Source</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-600">Approver</th>
               <th className="px-4 py-3" />
             </tr>
           </thead>
@@ -177,16 +177,12 @@ export function LedgerTable() {
                     <span className="text-gray-300">—</span>
                   )}
                 </td>
-                <td className="px-4 py-3">
-                  {entry.is_manual ? (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-                      Manual
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700">
-                      Extracted
-                    </span>
-                  )}
+                <td className="px-4 py-3 text-sm text-gray-700">
+                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                  {(entry as any).creator?.full_name
+                    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+                    || (entry as any).creator?.email
+                    || (entry.is_manual ? 'Manual' : '—')}
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-1 justify-end">

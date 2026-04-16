@@ -93,7 +93,7 @@ export const LedgerRepository = {
 
     let query = supabase
       .from('ledger_entries')
-      .select('*, account:chart_of_accounts(*)', { count: 'exact' })
+      .select('*, account:chart_of_accounts(*), creator:user_profiles!created_by(full_name, email)', { count: 'exact' })
       .eq('org_id', orgId)
       .order('entry_date', { ascending: false })
       .order('created_at', { ascending: false })
