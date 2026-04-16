@@ -14,11 +14,8 @@ export function useExtractionRecord(id: string) {
 export function useExtractionByDocument(documentId: string) {
   return useQuery<ExtractedRecord | null>({
     queryKey: ['extraction', 'by-doc', documentId],
-    queryFn: async () => {
-      const res = await fetch(`/api/extraction/review`)
-      const data: PaginatedResult<ExtractedRecord> = await res.json()
-      return data.items.find(r => r.document_id === documentId) ?? null
-    },
+    queryFn: () =>
+      fetch(`/api/extraction/document/${documentId}`).then(r => r.json()),
     enabled: !!documentId,
   })
 }
