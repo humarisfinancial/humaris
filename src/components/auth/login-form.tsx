@@ -55,6 +55,7 @@ export function LoginForm({ searchParams: _ }: LoginFormProps) {
               onChange={e => setEmail(e.target.value)}
               required
               autoComplete="email"
+              autoFocus
             />
           </div>
           <div className="space-y-2">

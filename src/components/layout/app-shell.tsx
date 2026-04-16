@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { DuplicateBanner } from '@/components/shared/duplicate-banner'
 import {
   LayoutDashboard,
@@ -47,6 +47,7 @@ interface AppShellProps {
 
 export function AppShell({ session, children }: AppShellProps) {
   const pathname = usePathname()
+  const router = useRouter()
 
   const initials = session.profile.full_name
     ? session.profile.full_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
@@ -112,7 +113,7 @@ export function AppShell({ session, children }: AppShellProps) {
               </div>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuItem onClick={() => window.location.href = '/settings'}>
+              <DropdownMenuItem onClick={() => router.push('/settings')}>
                 <Settings className="w-4 h-4 mr-2" />
                 Settings
               </DropdownMenuItem>

@@ -107,6 +107,7 @@ export function SearchOverlay() {
           </kbd>
           <button
             onClick={() => setOpen(false)}
+            aria-label="Close search"
             className="sm:hidden text-gray-400 hover:text-gray-600"
           >
             <X className="w-4 h-4" />

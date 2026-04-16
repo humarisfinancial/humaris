@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { CheckCircle2, Upload as UploadIcon } from 'lucide-react'
+import { CheckCircle2, Upload as UploadIcon, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Dropzone } from '@/components/upload/dropzone'
 import { DuplicateReviewModal } from '@/components/upload/duplicate-review-modal'
@@ -137,7 +137,7 @@ export default function UploadPage() {
               >
                 {state === 'uploading' ? (
                   <>
-                    <span className="animate-spin mr-2">⟳</span>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     Uploading...
                   </>
                 ) : (

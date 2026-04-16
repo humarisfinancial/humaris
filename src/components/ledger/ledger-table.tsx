@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { toast } from 'sonner'
 import {
   useLedgerEntries,
@@ -29,6 +30,7 @@ export function LedgerTable() {
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   const [editEntry, setEditEntry] = useState<LedgerEntry | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<LedgerEntry | null>(null)
 
   const { data, isLoading } = useLedgerEntries({
     account_id: accountId || undefined,
@@ -46,9 +48,9 @@ export function LedgerTable() {
   const hasMore = data?.has_more ?? false
   const accounts = accountsData?.accounts ?? []
 
-  function handleDelete(entry: LedgerEntry) {
-    if (!confirm(`Delete this ledger entry? This cannot be undone.`)) return
-    deleteEntry(entry.id, {
+  function confirmDelete() {
+    if (!deleteTarget) return
+    deleteEntry(deleteTarget.id, {
       onSuccess: () => toast.success('Entry deleted'),
       onError: (err) => toast.error(err instanceof Error ? err.message : 'Failed to delete'),
     })
@@ -116,7 +118,7 @@ export function LedgerTable() {
       {/* Table */}
       <div className="border border-gray-200 rounded-xl overflow-hidden">
         <table className="w-full text-sm">
-          <thead>
+          <thead className="sticky top-0 z-10">
             <tr className="bg-gray-50 border-b border-gray-200">
               <th className="text-left px-4 py-3 font-medium text-gray-600">Date</th>
               <th className="text-left px-4 py-3 font-medium text-gray-600">Account</th>
@@ -194,7 +196,7 @@ export function LedgerTable() {
                       <Pencil className="w-3.5 h-3.5" />
                     </button>
                     <button
-                      onClick={() => handleDelete(entry)}
+                      onClick={() => setDeleteTarget(entry)}
                       className="p-1.5 text-gray-400 hover:text-red-600 rounded cursor-pointer transition-colors"
                       aria-label="Delete entry"
                     >
@@ -234,6 +236,17 @@ export function LedgerTable() {
           </div>
         </div>
       )}
+
+      {/* Delete confirmation */}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        title="Delete ledger entry"
+        description="This will permanently remove the entry. This cannot be undone."
+        confirmLabel="Delete"
+        onConfirm={confirmDelete}
+        destructive
+      />
 
       {/* Edit dialog */}
       <Dialog open={!!editEntry} onOpenChange={open => !open && setEditEntry(null)}>

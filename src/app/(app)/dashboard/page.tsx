@@ -40,10 +40,7 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1
-            className="text-2xl font-bold text-gray-900"
-            style={{ fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, sans-serif' }}
-          >
+          <h1 className="text-2xl font-bold text-gray-900">
             Dashboard
           </h1>
           {data?.periodLabel && (

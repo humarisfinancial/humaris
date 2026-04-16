@@ -1,9 +1,11 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { FileText, Trash2, ExternalLink, AlertCircle } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useDeleteDocument } from '@/hooks/use-documents'
 import { toast } from 'sonner'
 import type { Document } from '@/types'
@@ -24,10 +26,11 @@ interface DocumentTableProps {
 
 export function DocumentTable({ documents, isLoading }: DocumentTableProps) {
   const { mutate: deleteDoc } = useDeleteDocument()
+  const [deleteTarget, setDeleteTarget] = useState<Document | null>(null)
 
-  function handleDelete(doc: Document) {
-    if (!confirm(`Delete "${doc.renamed_name ?? doc.original_name}"? This cannot be undone.`)) return
-    deleteDoc(doc.id, {
+  function confirmDelete() {
+    if (!deleteTarget) return
+    deleteDoc(deleteTarget.id, {
       onSuccess: () => toast.success('Document deleted'),
       onError: () => toast.error('Failed to delete document'),
     })
@@ -98,15 +101,16 @@ export function DocumentTable({ documents, isLoading }: DocumentTableProps) {
               <td className="px-4 py-3">
                 <div className="flex items-center gap-1 justify-end">
                   <Link href={`/documents/${doc.id}`}>
-                    <Button variant="ghost" size="sm">
+                    <Button variant="ghost" size="icon-sm" aria-label="Open document">
                       <ExternalLink className="w-3.5 h-3.5" />
                     </Button>
                   </Link>
                   <Button
                     variant="ghost"
-                    size="sm"
+                    size="icon-sm"
+                    aria-label="Delete document"
                     className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                    onClick={() => handleDelete(doc)}
+                    onClick={() => setDeleteTarget(doc)}
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </Button>
@@ -116,6 +120,15 @@ export function DocumentTable({ documents, isLoading }: DocumentTableProps) {
           ))}
         </tbody>
       </table>
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        title="Delete document"
+        description={`Delete "${deleteTarget?.renamed_name ?? deleteTarget?.original_name}"? This cannot be undone.`}
+        confirmLabel="Delete"
+        onConfirm={confirmDelete}
+        destructive
+      />
     </div>
   )
 }

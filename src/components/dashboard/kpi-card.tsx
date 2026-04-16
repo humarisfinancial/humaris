@@ -71,13 +71,10 @@ export function KPICard({
   return (
     <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-3">
       <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest">{label}</p>
-      <p
-        className="text-2xl font-bold text-gray-900"
-        style={{ fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, sans-serif' }}
-      >
+      <p className="text-2xl font-bold text-gray-900">
         {displayValue}
       </p>
-      {secondary && <p className="text-xs text-gray-400">{secondary}</p>}
+      {secondary && <p className="text-xs text-gray-500">{secondary}</p>}
       {((showMom && pctChange(value!, momValue!) !== 0) || (showYoy && pctChange(value!, yoyValue!) !== 0)) && (
         <div className="flex flex-wrap gap-1.5">
           {showMom && pctChange(value!, momValue!) !== 0 && (
