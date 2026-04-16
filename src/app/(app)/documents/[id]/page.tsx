@@ -6,7 +6,7 @@ import { Suspense } from 'react'
 import { ArrowLeft, FileText, Download, Trash2, Zap, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useDeleteDocument } from '@/hooks/use-documents'
-import { useProcessDocument, useExtractionRecord } from '@/hooks/use-extraction'
+import { useProcessDocument, useExtractionRecord, useExtractionByDocument } from '@/hooks/use-extraction'
 import { ExtractionForm } from '@/components/extraction/extraction-form'
 import { toast } from 'sonner'
 import type { Document, ExtractedRecord } from '@/types'
@@ -25,9 +25,12 @@ function DocumentDetailContent() {
     queryFn: () => fetch(`/api/documents/${id}`).then(r => r.json()),
   })
 
-  // Load extraction record — either from query param or look up by doc status
+  // Load extraction record — from query param if present, otherwise look up by document
   const extractionId = reviewId ?? ''
-  const { data: extraction, refetch: refetchExtraction } = useExtractionRecord(extractionId)
+  const { data: extractionById, refetch: refetchById } = useExtractionRecord(extractionId)
+  const { data: extractionByDoc, refetch: refetchByDoc } = useExtractionByDocument(reviewId ? '' : id)
+  const extraction = extractionById ?? extractionByDoc ?? null
+  const refetchExtraction = () => { refetchById(); refetchByDoc() }
 
   async function handleProcess() {
     const result = await processDoc(id)
