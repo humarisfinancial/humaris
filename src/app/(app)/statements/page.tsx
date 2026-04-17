@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { RefreshCw, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PeriodSelector } from '@/components/statements/period-selector'
@@ -22,9 +22,27 @@ const STATEMENT_TYPES: { value: StatementType; label: string }[] = [
   { value: 'cash_flow', label: 'Cash Flow' },
 ]
 
+function loadSavedPeriod(): StatementPeriod {
+  try {
+    const saved = localStorage.getItem('statements:period')
+    if (saved) return JSON.parse(saved)
+  } catch { /* ignore */ }
+  return getMTD()
+}
+
 export default function StatementsPage() {
   const [activeType, setActiveType] = useState<StatementType>('pnl')
   const [period, setPeriod] = useState<StatementPeriod>(getMTD())
+
+  // Restore saved period after mount (avoids SSR mismatch)
+  useEffect(() => {
+    setPeriod(loadSavedPeriod())
+  }, [])
+
+  function handlePeriodChange(p: StatementPeriod) {
+    setPeriod(p)
+    try { localStorage.setItem('statements:period', JSON.stringify(p)) } catch { /* ignore */ }
+  }
 
   const { data, isLoading, error } = useStatement(activeType, period)
   const refresh = useRefreshStatement(activeType)
@@ -77,7 +95,7 @@ export default function StatementsPage() {
 
       {/* Period selector + refresh */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
-        <PeriodSelector value={period} onChange={setPeriod} />
+        <PeriodSelector value={period} onChange={handlePeriodChange} />
         <Button
           variant="ghost"
           size="sm"
