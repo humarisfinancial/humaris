@@ -86,7 +86,11 @@ export async function POST(request: NextRequest) {
       if (duplicates.length === 0) {
         try {
           extraction = await runExtractionPipeline(document, session.org.id)
-        } catch {
+          if (extraction && !extraction.success) {
+            console.error('[Extraction] Pipeline failed:', extraction.error)
+          }
+        } catch (extractionErr) {
+          console.error('[Extraction] Unhandled error:', extractionErr)
           // Non-fatal — document is saved, extraction can be retried manually
         }
       }

@@ -196,12 +196,26 @@ export function EntryForm({ entry, onSuccess, onCancel }: EntryFormProps) {
       {/* Category */}
       <div className="space-y-1.5">
         <Label htmlFor="category">Category</Label>
-        <Input
-          id="category"
-          placeholder="e.g. Office Supplies"
-          value={category}
-          onChange={e => setCategory(e.target.value)}
-        />
+        <Select value={category || '__none__'} onValueChange={v => setCategory(v === '__none__' ? '' : v)}>
+          <SelectTrigger id="category">
+            <SelectValue placeholder="Select category…" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__none__">— None —</SelectItem>
+            {Object.entries(groupedAccounts).map(([type, accs]) => (
+              <div key={type}>
+                <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  {typeLabels[type] ?? type}
+                </div>
+                {accs.map(acc => (
+                  <SelectItem key={acc.id} value={acc.name}>
+                    {acc.name}
+                  </SelectItem>
+                ))}
+              </div>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Actions */}
