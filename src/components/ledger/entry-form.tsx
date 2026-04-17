@@ -109,7 +109,11 @@ export function EntryForm({ entry, onSuccess, onCancel }: EntryFormProps) {
         <Label htmlFor="account">Account</Label>
         <Select value={accountId} onValueChange={(v) => setAccountId(v ?? '')}>
           <SelectTrigger id="account">
-            <SelectValue placeholder="Select account…" />
+            <SelectValue placeholder="Select account…">
+              {accounts.find(a => a.id === accountId)
+                ? `${accounts.find(a => a.id === accountId)!.code} — ${accounts.find(a => a.id === accountId)!.name}`
+                : undefined}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {Object.entries(groupedAccounts).map(([type, accs]) => (
