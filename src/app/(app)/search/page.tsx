@@ -28,7 +28,7 @@ export default function SearchPage() {
   }
 
   return (
-    <div className="p-8 max-w-3xl mx-auto space-y-6">
+    <div className="w-full px-3 sm:px-5 lg:px-8 py-4 sm:py-6 space-y-6">
       {/* Header */}
       <div>
         <h1

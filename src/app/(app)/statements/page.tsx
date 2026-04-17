@@ -59,7 +59,7 @@ export default function StatementsPage() {
   }
 
   return (
-    <div className="p-8 max-w-5xl mx-auto space-y-6">
+    <div className="w-full px-3 sm:px-5 lg:px-8 py-4 sm:py-6 space-y-6">
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
@@ -152,14 +152,33 @@ export default function StatementsPage() {
         </div>
       )}
 
-      {!isLoading && statement && (
-        <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
-          <StatementTable
-            data={statement.data}
-            generatedAt={statement.generated_at}
-          />
-        </div>
-      )}
+      {!isLoading && statement && (() => {
+        const isEmptyBalanceSheet =
+          activeType === 'balance_sheet' &&
+          statement.data.sections.every(s => s.amount === 0 && !(s.children?.length))
+        if (isEmptyBalanceSheet) {
+          return (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <p className="text-sm font-medium text-gray-700">No balance sheet entries for this period</p>
+              <p className="text-sm text-gray-400 mt-1 max-w-sm">
+                The balance sheet only includes asset, liability, and equity accounts.
+                Add entries to those account types to see data here.
+              </p>
+              <a href="/ledger" className="mt-4 text-sm font-medium text-gray-900 underline underline-offset-2">
+                Go to Ledger
+              </a>
+            </div>
+          )
+        }
+        return (
+          <div className="bg-white border border-gray-200 rounded-2xl overflow-x-auto">
+            <StatementTable
+              data={statement.data}
+              generatedAt={statement.generated_at}
+            />
+          </div>
+        )
+      })()}
     </div>
   )
 }

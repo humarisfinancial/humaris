@@ -60,7 +60,7 @@ function DocumentDetailContent() {
 
   if (isLoading) {
     return (
-      <div className="p-8 animate-pulse">
+      <div className="w-full px-3 sm:px-5 lg:px-8 py-4 sm:py-6 animate-pulse">
         <div className="h-8 w-48 bg-gray-200 rounded mb-4" />
         <div className="h-4 w-32 bg-gray-100 rounded" />
       </div>
@@ -69,7 +69,7 @@ function DocumentDetailContent() {
 
   if (!doc || !doc.id) {
     return (
-      <div className="p-8 text-center">
+      <div className="w-full px-3 sm:px-5 lg:px-8 py-4 sm:py-6 text-center">
         <p className="text-gray-500">Document not found</p>
         <Button variant="outline" className="mt-4" onClick={() => router.push('/documents')}>
           Back to Documents
@@ -78,11 +78,11 @@ function DocumentDetailContent() {
     )
   }
 
-  const canProcess = ['pending', 'failed'].includes(doc.status)
-  const hasExtractionData = extraction || ['extracted', 'review_required', 'approved'].includes(doc.status)
+  const canProcess = ['pending', 'failed', 'rejected'].includes(doc.status)
+  const hasExtractionData = extraction || ['extracted', 'review_required', 'approved', 'rejected'].includes(doc.status)
 
   return (
-    <div className="p-8 max-w-4xl mx-auto">
+    <div className="w-full px-3 sm:px-5 lg:px-8 py-4 sm:py-6">
       <button
         onClick={() => router.back()}
         className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 mb-6"
@@ -194,8 +194,8 @@ function DocumentDetailContent() {
           {extraction && (
             <ExtractionForm
               record={extraction}
-              onApproved={() => refetch()}
-              onRejected={() => refetch()}
+              onApproved={() => { refetch(); refetchExtraction() }}
+              onRejected={() => { refetch(); refetchExtraction() }}
             />
           )}
         </div>
@@ -211,6 +211,7 @@ const STATUS_STYLES: Record<string, string> = {
   review_required: 'bg-yellow-100 text-yellow-700',
   approved: 'bg-green-100 text-green-700',
   failed: 'bg-red-100 text-red-700',
+  rejected: 'bg-red-100 text-red-700',
 }
 
 function formatBytes(bytes: number): string {
@@ -229,7 +230,7 @@ function formatDate(str: string): string {
 
 export default function DocumentDetailPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-gray-400 text-sm">Loading...</div>}>
+    <Suspense fallback={<div className="px-3 sm:px-5 lg:px-8 py-4 text-gray-400 text-sm">Loading...</div>}>
       <DocumentDetailContent />
     </Suspense>
   )

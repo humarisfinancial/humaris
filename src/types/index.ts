@@ -35,6 +35,7 @@ export type DocumentStatus =
   | 'review_required'
   | 'approved'
   | 'failed'
+  | 'rejected'
 
 export type DuplicateConfidence = 'exact' | 'likely' | 'possible'
 export type DuplicateResolution = 'keep_new' | 'keep_existing' | 'keep_both' | 'decide_later'

@@ -116,9 +116,9 @@ export function LedgerTable() {
       </div>
 
       {/* Table */}
-      <div className="border border-gray-200 rounded-xl overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="sticky top-0 z-10">
+      <div className="border border-gray-200 rounded-xl overflow-x-auto">
+        <table className="w-full min-w-[700px] text-sm">
+          <thead>
             <tr className="bg-gray-50 border-b border-gray-200">
               <th className="text-left px-4 py-3 font-medium text-gray-600">Date</th>
               <th className="text-left px-4 py-3 font-medium text-gray-600">Account</th>
@@ -160,8 +160,20 @@ export function LedgerTable() {
                   </span>
                   <span className="text-gray-500 ml-1.5">{entry.account?.name}</span>
                 </td>
-                <td className="px-4 py-3 text-gray-600 max-w-xs truncate">
-                  {entry.description ?? (
+                <td className="px-4 py-3 max-w-xs">
+                  {entry.description ? (() => {
+                    const parts = entry.description.split(' — ')
+                    const vendor = parts.length > 1 ? parts[0] : null
+                    const rest = parts.length > 1 ? parts.slice(1).join(' — ') : parts[0]
+                    return vendor ? (
+                      <div>
+                        <span className="font-medium text-gray-900 block truncate">{vendor}</span>
+                        {rest && <span className="text-xs text-gray-400 block truncate">{rest}</span>}
+                      </div>
+                    ) : (
+                      <span className="text-gray-600 truncate block">{rest}</span>
+                    )
+                  })() : (
                     <span className="text-gray-300">—</span>
                   )}
                 </td>
@@ -186,7 +198,7 @@ export function LedgerTable() {
                     || (entry as any).creator?.email
                     || (entry.is_manual ? 'Manual' : '—')}
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-4 py-3 w-px whitespace-nowrap">
                   <div className="flex items-center gap-1 justify-end">
                     <button
                       onClick={() => setEditEntry(entry)}

@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
         file.type
       )
 
-      // Generate standardized filename
+      // Generate a placeholder name — will be updated with invoice date + vendor after extraction
       const renamedName = generateRenamedFilename({
         date: new Date(),
         docType,

@@ -24,8 +24,8 @@ export async function POST(
       reviewed_at: new Date().toISOString(),
     })
 
-    // Reset document status back to pending so it can be re-processed
-    await DocumentRepository.update(record.document_id, session.org.id, { status: 'pending' })
+    // Mark document as rejected — user can re-run extraction if needed
+    await DocumentRepository.update(record.document_id, session.org.id, { status: 'rejected' })
 
     return NextResponse.json({ success: true })
   } catch {

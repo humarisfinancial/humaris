@@ -10,7 +10,7 @@ import { generateRenamedFilename, getFileExtension } from '@/lib/documents/renam
 import { classifyDocumentType, getFolderForDocType } from '@/lib/documents/classification'
 import { validateExtractedFields } from '@/lib/extraction/validators'
 import { createServerSupabaseClient } from '@/lib/db/server'
-import type { Document, ExtractionStatus } from '@/types'
+import type { Document, ExtractionStatus, LineItem } from '@/types'
 
 export interface PipelineResult {
   success: boolean
@@ -58,38 +58,42 @@ export async function runExtractionPipeline(
       extracted = await new MockExtractionProvider().extract(fileBuffer, mimeType, docType ?? 'other')
     }
 
-    // 6. Validate extracted fields
+    // 6. Apply defaults for missing fields and track which were auto-populated
+    const { fields: filledFields, auto_populated } = applyExtractionDefaults(extracted, docType ?? 'other')
+
+    // 7. Validate extracted fields
     const validation = validateExtractedFields({
-      vendor_name: extracted.vendor_name,
-      transaction_date: extracted.transaction_date,
-      amount: extracted.amount,
-      tax_amount: extracted.tax_amount,
-      line_items: extracted.line_items,
+      vendor_name: filledFields.vendor_name,
+      transaction_date: filledFields.transaction_date,
+      amount: filledFields.amount,
+      tax_amount: filledFields.tax_amount,
+      line_items: filledFields.line_items,
     })
 
-    // 7. Always send to review — human approval required before ledger entry is created
+    // 8. Always send to review — human approval required before ledger entry is created
     const recordStatus: ExtractionStatus = 'review'
 
-    // 8. Store extraction record
+    // 9. Store extraction record
     const record = await ExtractionRepository.create({
       org_id: orgId,
       document_id: document.id,
-      vendor_name: extracted.vendor_name,
-      transaction_date: extracted.transaction_date,
-      amount: extracted.amount,
-      tax_amount: extracted.tax_amount,
-      invoice_number: extracted.invoice_number,
-      payment_terms: extracted.payment_terms,
-      line_items: extracted.line_items,
+      vendor_name: filledFields.vendor_name,
+      transaction_date: filledFields.transaction_date,
+      amount: filledFields.amount,
+      tax_amount: filledFields.tax_amount,
+      invoice_number: filledFields.invoice_number,
+      payment_terms: filledFields.payment_terms,
+      line_items: filledFields.line_items,
       raw_fields: {
-        ...extracted.raw_fields,
+        ...filledFields.raw_fields,
         validation_issues: validation.issues,
+        auto_populated,
       },
-      confidence_score: extracted.confidence_score,
+      confidence_score: filledFields.confidence_score,
       status: recordStatus,
       reviewed_by: null,
       reviewed_at: null,
-      extraction_provider: extracted.extraction_provider ?? 'unknown',
+      extraction_provider: filledFields.extraction_provider ?? 'unknown',
     })
 
     // 9. Update document status to review_required (approval always required)
@@ -104,16 +108,15 @@ export async function runExtractionPipeline(
       updates.folder = getFolderForDocType(docType)
     }
 
-    // Update renamed_name with vendor info if available (will be finalized on approval)
-    if (extracted.vendor_name && false) {
-      const ext = getFileExtension(document.original_name)
-      updates.renamed_name = generateRenamedFilename({
-        date: extracted.transaction_date ?? new Date(),
-        docType: docType ?? 'other',
-        vendor: extracted.vendor_name,
-        extension: ext,
-      })
-    }
+    // Update renamed_name using invoice date + vendor from extraction
+    // Use filledFields so we get the transaction_date and vendor_name after defaults are applied
+    const ext = getFileExtension(document.original_name)
+    updates.renamed_name = generateRenamedFilename({
+      date: filledFields.transaction_date ?? new Date(),
+      docType: docType ?? 'other',
+      vendor: filledFields.vendor_name,
+      extension: ext,
+    })
 
     await DocumentRepository.update(document.id, orgId, updates)
 
@@ -134,6 +137,65 @@ export async function runExtractionPipeline(
       error: err instanceof Error ? err.message : 'Unknown extraction error',
     }
   }
+}
+
+/** US combined average sales tax rate used when no tax amount is found in the document. */
+const DEFAULT_TAX_RATE = 0.0825 // 8.25%
+
+/**
+ * Fills in missing invoice fields with sensible defaults.
+ * Returns the enriched fields and a list of field names that were auto-populated.
+ */
+function applyExtractionDefaults(
+  extracted: {
+    vendor_name: string | null
+    transaction_date: string | null
+    amount: number | null
+    tax_amount: number | null
+    invoice_number: string | null
+    payment_terms: string | null
+    line_items: LineItem[]
+    raw_fields: Record<string, unknown>
+    confidence_score: number | null
+    extraction_provider?: string | null
+  },
+  docType: string
+): { fields: typeof extracted; auto_populated: string[] } {
+  const auto_populated: string[] = []
+  const fields = { ...extracted }
+
+  // Only auto-populate for invoice-like documents
+  const isInvoiceLike = ['invoice', 'receipt', 'expense_report'].includes(docType)
+  if (!isInvoiceLike) return { fields, auto_populated }
+
+  // Invoice number — generate a unique reference if not found
+  if (!fields.invoice_number) {
+    const today = new Date()
+    const datePart = today.toISOString().slice(0, 10).replace(/-/g, '')
+    const rand = Math.floor(1000 + Math.random() * 9000)
+    fields.invoice_number = `INV-${datePart}-${rand}`
+    auto_populated.push('invoice_number')
+  }
+
+  // Payment terms — default to Net 30
+  if (!fields.payment_terms) {
+    fields.payment_terms = 'Net 30'
+    auto_populated.push('payment_terms')
+  }
+
+  // Tax amount — estimate from total using standard rate if not found
+  if (fields.tax_amount === null && fields.amount !== null && fields.amount > 0) {
+    const year = new Date().getFullYear()
+    fields.tax_amount = parseFloat((fields.amount * DEFAULT_TAX_RATE).toFixed(2))
+    fields.raw_fields = {
+      ...fields.raw_fields,
+      auto_tax_rate: DEFAULT_TAX_RATE,
+      auto_tax_rate_year: year,
+    }
+    auto_populated.push('tax_amount')
+  }
+
+  return { fields, auto_populated }
 }
 
 async function downloadDocumentBuffer(storagePath: string): Promise<Buffer> {

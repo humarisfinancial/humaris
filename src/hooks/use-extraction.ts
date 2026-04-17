@@ -67,11 +67,16 @@ export function useUpdateExtraction() {
 export function useApproveExtraction() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (id: string) =>
-      fetch(`/api/extraction/${id}/approve`, { method: 'POST' }).then(r => r.json()),
+    mutationFn: async (id: string) => {
+      const r = await fetch(`/api/extraction/${id}/approve`, { method: 'POST' })
+      const data = await r.json()
+      if (!r.ok) throw new Error(data.error ?? 'Failed to approve')
+      return data
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['extraction'] })
       queryClient.invalidateQueries({ queryKey: ['documents'] })
+      queryClient.invalidateQueries({ queryKey: ['document'] })
     },
   })
 }
@@ -79,11 +84,16 @@ export function useApproveExtraction() {
 export function useRejectExtraction() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (id: string) =>
-      fetch(`/api/extraction/${id}/reject`, { method: 'POST' }).then(r => r.json()),
+    mutationFn: async (id: string) => {
+      const r = await fetch(`/api/extraction/${id}/reject`, { method: 'POST' })
+      const data = await r.json()
+      if (!r.ok) throw new Error(data.error ?? 'Failed to reject')
+      return data
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['extraction'] })
       queryClient.invalidateQueries({ queryKey: ['documents'] })
+      queryClient.invalidateQueries({ queryKey: ['document'] })
     },
   })
 }

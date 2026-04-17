@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { getMTD, getQTD, getYTD, type StatementPeriod } from '@/hooks/use-statements'
@@ -12,10 +12,31 @@ interface PeriodSelectorProps {
   onChange: (period: StatementPeriod) => void
 }
 
+function detectPreset(value: StatementPeriod | null): Preset {
+  if (!value) return 'MTD'
+  const mtd = getMTD(); const qtd = getQTD(); const ytd = getYTD()
+  if (value.from === mtd.from && value.to === mtd.to) return 'MTD'
+  if (value.from === qtd.from && value.to === qtd.to) return 'QTD'
+  if (value.from === ytd.from && value.to === ytd.to) return 'YTD'
+  return 'custom'
+}
+
 export function PeriodSelector({ value, onChange }: PeriodSelectorProps) {
-  const [preset, setPreset] = useState<Preset>('MTD')
-  const [customFrom, setCustomFrom] = useState('')
-  const [customTo, setCustomTo] = useState('')
+  const [preset, setPreset] = useState<Preset>(() => detectPreset(value))
+  const [customFrom, setCustomFrom] = useState(() => value?.from ?? '')
+  const [customTo, setCustomTo] = useState(() => value?.to ?? '')
+
+  // Sync internal state when parent restores a saved period (e.g. from localStorage)
+  useEffect(() => {
+    if (!value) return
+    const p = detectPreset(value)
+    setPreset(p)
+    if (p === 'custom') {
+      setCustomFrom(value.from)
+      setCustomTo(value.to)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value?.from, value?.to])
 
   function selectPreset(p: Preset) {
     setPreset(p)

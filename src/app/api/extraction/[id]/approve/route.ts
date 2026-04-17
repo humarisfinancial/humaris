@@ -49,42 +49,80 @@ export async function POST(
       await DocumentRepository.update(document.id, session.org.id, updates as never)
     }
 
-    // Create ledger entry for the approved extraction
+    // Create double-entry ledger entries for the approved extraction
     if (record.amount && record.amount > 0 && document) {
       try {
-        // Determine account based on doc type — default to Accounts Payable (2010)
-        // or find the matching expense account
+        // Total = subtotal + tax
+        const totalAmount = record.amount + (record.tax_amount ?? 0)
+
+        // Primary account per doc type
         const docTypeToAccountCode: Record<string, string> = {
-          invoice: '6900',        // Other Expenses (expense account so it shows in totals)
-          receipt: '6900',        // Other Expenses
-          expense_report: '6900', // Other Expenses
-          payroll_report: '6010', // Payroll Expenses
+          invoice: '6900',        // Other Expenses (expense)
+          receipt: '6900',        // Other Expenses (expense)
+          expense_report: '6900', // Other Expenses (expense)
+          payroll_report: '6010', // Payroll Expenses (expense)
           revenue_report: '4010', // Product Sales (revenue)
-          bank_statement: '1020', // Checking Account
+          bank_statement: '1020', // Checking Account (asset)
         }
+        // Offsetting account for double-entry
+        const docTypeToOffsetCode: Record<string, string> = {
+          invoice: '2010',        // Accounts Payable (liability)
+          receipt: '2010',        // Accounts Payable (liability)
+          expense_report: '2010', // Accounts Payable (liability)
+          payroll_report: '2010', // Accounts Payable (liability)
+          revenue_report: '1100', // Accounts Receivable (asset)
+          // bank_statement: no offset — single entry to asset account
+        }
+
         const targetCode = docTypeToAccountCode[document.doc_type ?? ''] ?? '6900'
+        const offsetCode = docTypeToOffsetCode[document.doc_type ?? '']
 
         const accounts = await ChartOfAccountsRepository.list(session.org.id)
         const targetAccount = accounts.find(a => a.code === targetCode)
+        const offsetAccount = offsetCode ? accounts.find(a => a.code === offsetCode) : null
+
+        const entryDate = record.transaction_date ?? new Date().toISOString().split('T')[0]
+        const descriptionParts = [
+          record.vendor_name,
+          record.invoice_number ? `#${record.invoice_number}` : null,
+          document.doc_type?.replace(/_/g, ' '),
+        ].filter(Boolean).join(' — ')
 
         if (targetAccount) {
           const isRevenue = targetAccount.type === 'revenue'
+
+          // Primary entry (e.g. debit expense or credit revenue)
           await LedgerRepository.create({
             org_id: session.org.id,
             extracted_record_id: record.id,
             account_id: targetAccount.id,
             source_doc_id: document.id,
-            entry_date: record.transaction_date ?? new Date().toISOString().split('T')[0],
-            description: [
-              record.vendor_name,
-              record.invoice_number ? `#${record.invoice_number}` : null,
-              document.doc_type?.replace(/_/g, ' '),
-            ].filter(Boolean).join(' — '),
-            debit: isRevenue ? 0 : record.amount,
-            credit: isRevenue ? record.amount : 0,
+            entry_date: entryDate,
+            description: descriptionParts,
+            debit: isRevenue ? 0 : totalAmount,
+            credit: isRevenue ? totalAmount : 0,
             is_manual: false,
             created_by: session.id,
           })
+
+          // Offsetting entry for double-entry bookkeeping
+          if (offsetAccount) {
+            const offsetIsLiability = offsetAccount.type === 'liability'
+            const offsetIsAsset = offsetAccount.type === 'asset'
+            await LedgerRepository.create({
+              org_id: session.org.id,
+              extracted_record_id: record.id,
+              account_id: offsetAccount.id,
+              source_doc_id: document.id,
+              entry_date: entryDate,
+              description: descriptionParts,
+              // Liability offset: credit (increases AP). Asset offset: debit (increases AR).
+              debit: offsetIsAsset ? totalAmount : 0,
+              credit: offsetIsLiability ? totalAmount : 0,
+              is_manual: false,
+              created_by: session.id,
+            })
+          }
         }
       } catch {
         // Non-fatal — extraction is approved, ledger entry can be added manually

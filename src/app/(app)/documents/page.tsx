@@ -20,8 +20,8 @@ function DocumentsContent() {
 
   return (
     <div className="flex gap-6 h-full">
-      {/* Folder sidebar */}
-      <aside className="w-52 shrink-0">
+      {/* Folder sidebar — hidden at small widths */}
+      <aside className="hidden sm:block w-44 lg:w-52 shrink-0">
         <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Folders</p>
         <FolderNav />
       </aside>
@@ -47,6 +47,29 @@ function DocumentsContent() {
           </Link>
         </div>
 
+        {/* Folder picker — visible only when sidebar is hidden (small screens) */}
+        <div className="sm:hidden">
+          <select
+            className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-900"
+            value={folder ?? 'all'}
+            onChange={e => {
+              const val = e.target.value
+              window.location.href = val === 'all' ? '/documents' : `/documents?folder=${val}`
+            }}
+          >
+            <option value="all">All Documents</option>
+            <option value="invoices">Invoices</option>
+            <option value="expenses">Expenses</option>
+            <option value="revenue">Revenue</option>
+            <option value="inventory">Inventory</option>
+            <option value="bank_statements">Bank Statements</option>
+            <option value="payroll">Payroll</option>
+            <option value="finance_accounting">Finance &amp; Accounting</option>
+            <option value="original_uploads">Original Uploads</option>
+            <option value="duplicates_review">Duplicates Review</option>
+          </select>
+        </div>
+
         {/* Stats row */}
         {data && (
           <p className="text-sm text-gray-500">
@@ -66,7 +89,7 @@ function DocumentsContent() {
 
 export default function DocumentsPage() {
   return (
-    <div className="p-8 h-full">
+    <div className="w-full px-3 sm:px-5 lg:px-8 py-4 sm:py-6 h-full">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Documents</h1>
         <p className="text-gray-500 mt-1">Your organized financial document library</p>

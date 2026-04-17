@@ -17,6 +17,7 @@ const STATUS_STYLES: Record<string, string> = {
   review_required: 'bg-yellow-100 text-yellow-700',
   approved: 'bg-green-100 text-green-700',
   failed: 'bg-red-100 text-red-700',
+  rejected: 'bg-red-100 text-red-700',
 }
 
 interface DocumentTableProps {
@@ -56,8 +57,8 @@ export function DocumentTable({ documents, isLoading }: DocumentTableProps) {
   }
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-      <table className="w-full text-sm">
+    <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
+      <table className="w-full min-w-[600px] text-sm">
         <thead>
           <tr className="border-b border-gray-200 bg-gray-50">
             <th className="text-left px-4 py-3 font-medium text-gray-600">Name</th>
@@ -98,7 +99,7 @@ export function DocumentTable({ documents, isLoading }: DocumentTableProps) {
               </td>
               <td className="px-4 py-3 text-gray-600">{formatBytes(doc.file_size)}</td>
               <td className="px-4 py-3 text-gray-600">{formatDate(doc.created_at)}</td>
-              <td className="px-4 py-3">
+              <td className="px-4 py-3 w-px whitespace-nowrap">
                 <div className="flex items-center gap-1 justify-end">
                   <Link href={`/documents/${doc.id}`}>
                     <Button variant="ghost" size="icon-sm" aria-label="Open document">

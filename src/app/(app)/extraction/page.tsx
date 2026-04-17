@@ -11,7 +11,7 @@ export default async function ExtractionPage() {
   }
 
   return (
-    <div className="p-8">
+    <div className="w-full px-3 sm:px-5 lg:px-8 py-4 sm:py-6">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Extraction Review Queue</h1>
         <p className="text-gray-500 mt-1">

@@ -22,16 +22,38 @@ interface EntryFormProps {
   onCancel?: () => void
 }
 
+/** Parse vendor name and notes out of a combined description string. */
+function parseDescription(desc: string | null | undefined): { vendor: string; notes: string } {
+  if (!desc) return { vendor: '', notes: '' }
+  const parts = desc.split(' — ')
+  // If there's more than one segment, first segment is the vendor
+  if (parts.length > 1) return { vendor: parts[0], notes: parts.slice(1).join(' — ') }
+  return { vendor: '', notes: desc }
+}
+
+/** Combine vendor + notes back into a single description string. */
+function buildDescription(vendor: string, notes: string): string | null {
+  const v = vendor.trim()
+  const n = notes.trim()
+  if (v && n) return `${v} — ${n}`
+  if (v) return v
+  if (n) return n
+  return null
+}
+
 export function EntryForm({ entry, onSuccess, onCancel }: EntryFormProps) {
   const isEdit = !!entry
   const { data: accountsData } = useChartOfAccounts()
   const accounts = accountsData?.accounts ?? []
 
+  const parsedDesc = parseDescription(entry?.description)
+
   const [accountId, setAccountId] = useState(entry?.account_id ?? '')
   const [entryDate, setEntryDate] = useState(
     entry?.entry_date ?? new Date().toISOString().split('T')[0]
   )
-  const [description, setDescription] = useState(entry?.description ?? '')
+  const [vendor, setVendor] = useState(parsedDesc.vendor)
+  const [notes, setNotes] = useState(parsedDesc.notes)
   const [type, setType] = useState<'debit' | 'credit'>(
     entry ? (entry.debit > 0 ? 'debit' : 'credit') : 'debit'
   )
@@ -47,7 +69,7 @@ export function EntryForm({ entry, onSuccess, onCancel }: EntryFormProps) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
 
-    if (!accountId) { toast.error('Select an account'); return }
+    if (!accountId) { toast.error('Select a GL account'); return }
     if (!entryDate) { toast.error('Enter a date'); return }
     const amountNum = parseFloat(amount)
     if (!amount || isNaN(amountNum) || amountNum <= 0) {
@@ -57,6 +79,7 @@ export function EntryForm({ entry, onSuccess, onCancel }: EntryFormProps) {
 
     const debit = type === 'debit' ? amountNum : 0
     const credit = type === 'credit' ? amountNum : 0
+    const description = buildDescription(vendor, notes)
 
     try {
       if (isEdit) {
@@ -64,7 +87,7 @@ export function EntryForm({ entry, onSuccess, onCancel }: EntryFormProps) {
           id: entry.id,
           account_id: accountId,
           entry_date: entryDate,
-          description: description || null,
+          description,
           debit,
           credit,
           category: category || null,
@@ -74,7 +97,7 @@ export function EntryForm({ entry, onSuccess, onCancel }: EntryFormProps) {
         await createEntry({
           account_id: accountId,
           entry_date: entryDate,
-          description: description || undefined,
+          description: description ?? undefined,
           debit,
           credit,
           category: category || undefined,
@@ -104,9 +127,20 @@ export function EntryForm({ entry, onSuccess, onCancel }: EntryFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Account */}
+      {/* Vendor */}
       <div className="space-y-1.5">
-        <Label htmlFor="account">Account</Label>
+        <Label htmlFor="vendor">Vendor / Payee</Label>
+        <Input
+          id="vendor"
+          placeholder="e.g. ACME Corp"
+          value={vendor}
+          onChange={e => setVendor(e.target.value)}
+        />
+      </div>
+
+      {/* GL Account */}
+      <div className="space-y-1.5">
+        <Label htmlFor="account">GL Account</Label>
         <Select value={accountId} onValueChange={(v) => setAccountId(v ?? '')}>
           <SelectTrigger id="account">
             <SelectValue placeholder="Select account…">
@@ -185,14 +219,14 @@ export function EntryForm({ entry, onSuccess, onCancel }: EntryFormProps) {
         </div>
       </div>
 
-      {/* Description */}
+      {/* Notes */}
       <div className="space-y-1.5">
-        <Label htmlFor="description">Description</Label>
+        <Label htmlFor="notes">Notes</Label>
         <Textarea
-          id="description"
+          id="notes"
           placeholder="Optional note…"
-          value={description}
-          onChange={e => setDescription(e.target.value)}
+          value={notes}
+          onChange={e => setNotes(e.target.value)}
           rows={2}
         />
       </div>
@@ -200,7 +234,7 @@ export function EntryForm({ entry, onSuccess, onCancel }: EntryFormProps) {
       {/* Category */}
       <div className="space-y-1.5">
         <Label htmlFor="category">Category</Label>
-        <Select value={category || '__none__'} onValueChange={v => setCategory(v === '__none__' ? '' : v)}>
+        <Select value={category || '__none__'} onValueChange={v => setCategory(!v || v === '__none__' ? '' : v)}>
           <SelectTrigger id="category">
             <SelectValue placeholder="Select category…" />
           </SelectTrigger>

@@ -36,7 +36,7 @@ export default function DashboardPage() {
     mom?.revenue ? `vs ${USD.format(mom.revenue)} prev period` : null
 
   return (
-    <div className="p-8 max-w-6xl mx-auto space-y-8">
+    <div className="w-full px-3 sm:px-5 lg:px-8 py-4 sm:py-6 space-y-6">
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>

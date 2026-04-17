@@ -3,11 +3,14 @@ import type { DocumentType } from '@/types'
 /**
  * Generates a standardized filename.
  *
- * Format: [YYYY.MM.DD] [Document Type] [Vendor or Source]
- * Example: 2026.02.18 Invoice ABC Supply.pdf
+ * Format: [YYYY.MM.DD] [Vendor Name].[ext]
+ * Example: 2026.02.18 Google Ads.pdf
  *
- * If vendor is unknown: 2026.02.18 Invoice.pdf
- * If "Keep Both" duplicate: 2026.02.18 Invoice ABC Supply (v2).pdf
+ * Falls back to doc type label when vendor is unknown:
+ *   2026.02.18 Invoice.pdf
+ *
+ * "Keep Both" duplicate adds a version suffix:
+ *   2026.02.18 Google Ads (v2).pdf
  */
 export function generateRenamedFilename(options: {
   date?: Date | string
@@ -20,16 +23,16 @@ export function generateRenamedFilename(options: {
 
   const d = date ? new Date(date) : new Date()
   const dateStr = formatDate(d)
-  const typeLabel = DOCUMENT_TYPE_LABELS[docType] ?? 'Document'
   const ext = extension.startsWith('.') ? extension : `.${extension}`
 
-  const parts = [dateStr, typeLabel]
-  if (vendor?.trim()) parts.push(sanitizeVendorName(vendor))
+  // Prefer vendor name; fall back to doc-type label as a placeholder
+  const label = vendor?.trim()
+    ? sanitizeVendorName(vendor)
+    : (DOCUMENT_TYPE_LABELS[docType] ?? 'Document')
 
-  const base = parts.join(' ')
   const versionSuffix = version && version > 1 ? ` (v${version})` : ''
 
-  return `${base}${versionSuffix}${ext}`
+  return `${dateStr} ${label}${versionSuffix}${ext}`
 }
 
 function formatDate(d: Date): string {
