@@ -3,7 +3,7 @@ import { requireSession } from '@/lib/auth/session'
 import { permissions } from '@/lib/rbac/permissions'
 import { uploadDocument, uploadOriginal } from '@/lib/storage'
 import { DocumentRepository } from '@/lib/db/repositories/document-repository'
-import { classifyDocumentType, getFolderForDocType } from '@/lib/documents/classification'
+import { classifyDocumentType, getFolderForDocType, extractFilenameLabelHint } from '@/lib/documents/classification'
 import { generateRenamedFilename, getFileExtension } from '@/lib/documents/renaming'
 import { detectDuplicates, computeFileHash } from '@/lib/documents/duplicate-detection'
 import { runExtractionPipeline } from '@/lib/extraction/pipeline'
@@ -46,12 +46,15 @@ export async function POST(request: NextRequest) {
         file.type
       )
 
-      // Generate a placeholder name — will be updated with invoice date + vendor after extraction
-      const renamedName = generateRenamedFilename({
+      // Generate a placeholder name — will be updated with invoice date + vendor after extraction.
+      const filenameHint = extractFilenameLabelHint(file.name)
+      const baseName = generateRenamedFilename({
         date: new Date(),
         docType,
+        vendor: filenameHint,
         extension,
       })
+      const renamedName = await DocumentRepository.uniqueRenamedName(session.org.id, baseName)
 
       // Upload the processed copy
       const docUpload = await uploadDocument(

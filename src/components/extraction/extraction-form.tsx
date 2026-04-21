@@ -16,6 +16,7 @@ interface ExtractionFormProps {
 }
 
 const DEFAULT_TAX_RATE = 0.0825
+const USD = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
 
 const AUTO_POPULATED_LABELS: Record<string, string> = {
   invoice_number: 'Invoice #',
@@ -306,10 +307,10 @@ export function ExtractionForm({ record, onApproved, onRejected }: ExtractionFor
                     <td className="px-3 py-2 text-gray-900">{item.description}</td>
                     <td className="px-3 py-2 text-right text-gray-600">{item.quantity ?? 1}</td>
                     <td className="px-3 py-2 text-right text-gray-600">
-                      {item.unit_price != null ? `$${item.unit_price.toFixed(2)}` : '—'}
+                      {item.unit_price != null ? USD.format(item.unit_price) : '—'}
                     </td>
                     <td className="px-3 py-2 text-right font-medium text-gray-900">
-                      ${(item.total ?? 0).toFixed(2)}
+                      {USD.format(item.total ?? 0)}
                     </td>
                   </tr>
                 ))}

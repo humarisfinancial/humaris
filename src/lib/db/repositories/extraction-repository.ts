@@ -61,7 +61,7 @@ export const ExtractionRepository = {
 
     const { data, count, error } = await supabase
       .from('extracted_records')
-      .select('*', { count: 'exact' })
+      .select('*, document:documents(original_name, renamed_name)', { count: 'exact' })
       .eq('org_id', orgId)
       .eq('status', 'review')
       .order('created_at', { ascending: false })

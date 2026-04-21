@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { RefreshCw, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PeriodSelector } from '@/components/statements/period-selector'
@@ -9,12 +9,11 @@ import { ExportButton } from '@/components/statements/export-button'
 import {
   useStatement,
   useRefreshStatement,
-  getMTD,
-  type StatementPeriod,
 } from '@/hooks/use-statements'
 import type { StatementType } from '@/types'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { useStatementsPeriod } from '@/contexts/period-context'
 
 const STATEMENT_TYPES: { value: StatementType; label: string }[] = [
   { value: 'pnl', label: 'Profit & Loss' },
@@ -22,27 +21,9 @@ const STATEMENT_TYPES: { value: StatementType; label: string }[] = [
   { value: 'cash_flow', label: 'Cash Flow' },
 ]
 
-function loadSavedPeriod(): StatementPeriod {
-  try {
-    const saved = localStorage.getItem('statements:period')
-    if (saved) return JSON.parse(saved)
-  } catch { /* ignore */ }
-  return getMTD()
-}
-
 export default function StatementsPage() {
   const [activeType, setActiveType] = useState<StatementType>('pnl')
-  const [period, setPeriod] = useState<StatementPeriod>(getMTD())
-
-  // Restore saved period after mount (avoids SSR mismatch)
-  useEffect(() => {
-    setPeriod(loadSavedPeriod())
-  }, [])
-
-  function handlePeriodChange(p: StatementPeriod) {
-    setPeriod(p)
-    try { localStorage.setItem('statements:period', JSON.stringify(p)) } catch { /* ignore */ }
-  }
+  const [period, setPeriod] = useStatementsPeriod()
 
   const { data, isLoading, error } = useStatement(activeType, period)
   const refresh = useRefreshStatement(activeType)
@@ -95,7 +76,7 @@ export default function StatementsPage() {
 
       {/* Period selector + refresh */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
-        <PeriodSelector value={period} onChange={handlePeriodChange} />
+        <PeriodSelector value={period} onChange={setPeriod} />
         <Button
           variant="ghost"
           size="sm"

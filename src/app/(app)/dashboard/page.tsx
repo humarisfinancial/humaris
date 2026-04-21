@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import Link from 'next/link'
 import { RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -9,7 +8,7 @@ import { KPICard } from '@/components/dashboard/kpi-card'
 import { RevenueTrendChart } from '@/components/dashboard/revenue-trend-chart'
 import { ExpenseDonutChart } from '@/components/dashboard/expense-donut-chart'
 import { useKPI, useKPITrend } from '@/hooks/use-kpi'
-import { getMTD, type StatementPeriod } from '@/hooks/use-statements'
+import { useDashboardPeriod } from '@/contexts/period-context'
 import { cn } from '@/lib/utils'
 
 const USD = new Intl.NumberFormat('en-US', {
@@ -19,7 +18,7 @@ const USD = new Intl.NumberFormat('en-US', {
 })
 
 export default function DashboardPage() {
-  const [period, setPeriod] = useState<StatementPeriod>(getMTD())
+  const [period, setPeriod] = useDashboardPeriod()
 
   const { data, isLoading, error, refetch, isFetching } = useKPI(period)
   const { data: trendData } = useKPITrend()

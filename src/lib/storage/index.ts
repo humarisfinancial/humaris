@@ -8,6 +8,15 @@ import { createServerSupabaseClient } from '@/lib/db/server'
 const BUCKET = 'financial-documents'
 const ORIGINALS_BUCKET = 'original-uploads'
 
+/** Strips characters that Supabase Storage rejects from storage key segments. */
+function sanitizeKey(name: string): string {
+  return name
+    .replace(/[^\w.\-() ]/g, '_') // replace anything not alphanumeric, dot, dash, parens, space
+    .replace(/\s+/g, '_')          // collapse spaces to underscores
+    .replace(/_+/g, '_')           // collapse consecutive underscores
+    .replace(/^_|_$/g, '')         // trim leading/trailing underscores
+}
+
 export interface UploadResult {
   path: string
   publicUrl?: string
@@ -20,7 +29,7 @@ export async function uploadDocument(
   mimeType: string
 ): Promise<UploadResult> {
   const supabase = await createServerSupabaseClient()
-  const path = `${orgId}/${Date.now()}_${fileName}`
+  const path = `${orgId}/${Date.now()}_${sanitizeKey(fileName)}`
 
   const { error } = await supabase.storage
     .from(BUCKET)
@@ -38,7 +47,7 @@ export async function uploadOriginal(
   mimeType: string
 ): Promise<UploadResult> {
   const supabase = await createServerSupabaseClient()
-  const path = `${orgId}/${Date.now()}_${fileName}`
+  const path = `${orgId}/${Date.now()}_${sanitizeKey(fileName)}`
 
   const { error } = await supabase.storage
     .from(ORIGINALS_BUCKET)

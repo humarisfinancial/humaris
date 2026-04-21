@@ -1,9 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import { FileText, Trash2, ExternalLink, AlertCircle } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useDeleteDocument } from '@/hooks/use-documents'
@@ -25,9 +24,53 @@ interface DocumentTableProps {
   isLoading: boolean
 }
 
+const DEFAULT_COL_WIDTHS = { name: 280, type: 140, status: 130, size: 80, uploaded: 120 }
+
+function useColumnResize(initial: typeof DEFAULT_COL_WIDTHS) {
+  const [widths, setWidths] = useState(initial)
+  const dragging = useRef<{ col: keyof typeof initial; startX: number; startW: number } | null>(null)
+
+  const onMouseDown = useCallback((col: keyof typeof initial, e: React.MouseEvent) => {
+    e.preventDefault()
+    dragging.current = { col, startX: e.clientX, startW: widths[col] }
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+
+    const onMove = (ev: MouseEvent) => {
+      if (!dragging.current) return
+      const { col, startX, startW } = dragging.current
+      const newW = Math.max(60, startW + (ev.clientX - startX))
+      setWidths(prev => ({ ...prev, [col]: newW }))
+    }
+    const onUp = () => {
+      dragging.current = null
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }, [widths])
+
+  return { widths, onMouseDown }
+}
+
+function ResizeHandle({ onMouseDown }: { onMouseDown: (e: React.MouseEvent) => void }) {
+  return (
+    <div
+      onMouseDown={onMouseDown}
+      className="absolute right-0 top-0 bottom-0 w-3 cursor-col-resize group z-10 flex items-center justify-center"
+    >
+      <div className="w-px h-4 bg-gray-300 group-hover:bg-blue-400 transition-colors" />
+    </div>
+  )
+}
+
 export function DocumentTable({ documents, isLoading }: DocumentTableProps) {
   const { mutate: deleteDoc } = useDeleteDocument()
   const [deleteTarget, setDeleteTarget] = useState<Document | null>(null)
+  const { widths, onMouseDown } = useColumnResize(DEFAULT_COL_WIDTHS)
 
   function confirmDelete() {
     if (!deleteTarget) return
@@ -58,41 +101,58 @@ export function DocumentTable({ documents, isLoading }: DocumentTableProps) {
 
   return (
     <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
-      <table className="w-full min-w-[600px] text-sm">
+      <table className="text-sm border-collapse" style={{ tableLayout: 'fixed', width: Object.values(widths).reduce((a, b) => a + b, 0) + 64 }}>
+        <colgroup>
+          <col style={{ width: widths.name }} />
+          <col style={{ width: widths.type }} />
+          <col style={{ width: widths.status }} />
+          <col style={{ width: widths.size }} />
+          <col style={{ width: widths.uploaded }} />
+          <col style={{ width: 64 }} />
+        </colgroup>
         <thead>
           <tr className="border-b border-gray-200 bg-gray-50">
-            <th className="text-left px-4 py-3 font-medium text-gray-600">Name</th>
-            <th className="text-left px-4 py-3 font-medium text-gray-600">Type</th>
-            <th className="text-left px-4 py-3 font-medium text-gray-600">Status</th>
-            <th className="text-left px-4 py-3 font-medium text-gray-600">Size</th>
-            <th className="text-left px-4 py-3 font-medium text-gray-600">Uploaded</th>
+            {(
+              [
+                { key: 'name', label: 'Name' },
+                { key: 'type', label: 'Type' },
+                { key: 'status', label: 'Status' },
+                { key: 'size', label: 'Size' },
+                { key: 'uploaded', label: 'Uploaded' },
+              ] as const
+            ).map(({ key, label }) => (
+              <th key={key} className="relative text-left px-4 py-3 font-medium text-gray-600 overflow-hidden">
+                {label}
+                <ResizeHandle onMouseDown={(e) => onMouseDown(key, e)} />
+              </th>
+            ))}
             <th className="px-4 py-3" />
           </tr>
         </thead>
         <tbody>
           {documents.map(doc => (
             <tr key={doc.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-              <td className="px-4 py-3">
+              <td className="px-4 py-3 overflow-hidden">
                 <div className="flex items-center gap-2">
                   {doc.is_duplicate && (
                     <AlertCircle className="w-3.5 h-3.5 text-yellow-500 shrink-0" aria-label="Duplicate flagged" />
                   )}
                   <div className="min-w-0">
-                    <p className="font-medium text-gray-900 truncate max-w-xs">
+                    <p className="font-medium text-gray-900 truncate" title={doc.renamed_name ?? doc.original_name}>
                       {doc.renamed_name ?? doc.original_name}
                     </p>
                     {doc.renamed_name && doc.renamed_name !== doc.original_name && (
-                      <p className="text-xs text-gray-400 truncate max-w-xs">
+                      <p className="text-xs text-gray-400 truncate" title={doc.original_name}>
                         Original: {doc.original_name}
                       </p>
                     )}
                   </div>
                 </div>
               </td>
-              <td className="px-4 py-3 text-gray-600 capitalize">
+              <td className="px-4 py-3 text-gray-600 capitalize truncate overflow-hidden">
                 {doc.doc_type?.replace(/_/g, ' ') ?? '—'}
               </td>
-              <td className="px-4 py-3">
+              <td className="px-4 py-3 overflow-hidden">
                 <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_STYLES[doc.status] ?? 'bg-gray-100 text-gray-600'}`}>
                   {doc.status.replace(/_/g, ' ')}
                 </span>

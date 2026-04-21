@@ -129,6 +129,8 @@ export interface ExtractedRecord {
   extraction_provider: string | null
   created_at: string
   updated_at: string
+  // Joined from documents table (present in review queue responses)
+  document?: { original_name: string; renamed_name: string | null } | null
 }
 
 export interface LineItem {

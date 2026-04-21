@@ -8,18 +8,27 @@ export interface StatementPeriod {
   to: string
 }
 
+/** Format a Date as YYYY-MM-DD using the LOCAL timezone (not UTC). */
+function localDateStr(d: Date): string {
+  return [
+    d.getFullYear(),
+    String(d.getMonth() + 1).padStart(2, '0'),
+    String(d.getDate()).padStart(2, '0'),
+  ].join('-')
+}
+
 function getToday(): string {
-  return new Date().toISOString().split('T')[0]
+  return localDateStr(new Date())
 }
 
 function getStartOf(unit: 'month' | 'quarter' | 'year'): string {
   const now = new Date()
-  if (unit === 'month') return new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
+  if (unit === 'month') return localDateStr(new Date(now.getFullYear(), now.getMonth(), 1))
   if (unit === 'quarter') {
     const q = Math.floor(now.getMonth() / 3)
-    return new Date(now.getFullYear(), q * 3, 1).toISOString().split('T')[0]
+    return localDateStr(new Date(now.getFullYear(), q * 3, 1))
   }
-  return new Date(now.getFullYear(), 0, 1).toISOString().split('T')[0]
+  return localDateStr(new Date(now.getFullYear(), 0, 1))
 }
 
 export function getMTD(): StatementPeriod { return { from: getStartOf('month'), to: getToday() } }

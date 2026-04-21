@@ -5,6 +5,9 @@ import { ClipboardCheck, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useReviewQueue } from '@/hooks/use-extraction'
 
+const USD = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
+function formatCurrency(n: number) { return USD.format(n) }
+
 export function ReviewQueueTable() {
   const { data, isLoading } = useReviewQueue()
 
@@ -54,7 +57,7 @@ export function ReviewQueueTable() {
               <tr key={record.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                 <td className="px-4 py-3">
                   <p className="font-medium text-gray-900 truncate max-w-xs">
-                    {record.document_id.slice(0, 8)}…
+                    {record.document?.renamed_name ?? record.document?.original_name ?? record.document_id.slice(0, 8) + '…'}
                   </p>
                   <p className="text-xs text-gray-400">
                     {record.extraction_provider ?? '—'}
@@ -67,7 +70,7 @@ export function ReviewQueueTable() {
                   {record.transaction_date ?? '—'}
                 </td>
                 <td className="px-4 py-3 font-medium text-gray-900">
-                  {record.amount !== null ? `$${record.amount.toFixed(2)}` : '—'}
+                  {record.amount !== null ? formatCurrency(record.amount) : '—'}
                 </td>
                 <td className="px-4 py-3">
                   <span className={`font-semibold ${confidenceColor}`}>

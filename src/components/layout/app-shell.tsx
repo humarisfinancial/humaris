@@ -16,10 +16,14 @@ import {
   Settings,
   LogOut,
   ChevronRight,
+  ChevronLeft,
   ClipboardCheck,
   RefreshCw,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { PeriodProvider } from '@/contexts/period-context'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
   DropdownMenu,
@@ -225,17 +229,36 @@ export function AppShell({ session, children }: AppShellProps) {
           </DropdownMenu>
         </div>
 
-        {/* Drag handle */}
+        {/* Drag handle — wider hit area with visible stripe on hover */}
         <div
           onMouseDown={handleDragStart}
           onDoubleClick={() => {
             setSidebarWidth(DEFAULT_WIDTH)
             localStorage.setItem('sidebar:width', String(DEFAULT_WIDTH))
           }}
-          className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize z-10
-                     hover:bg-blue-400/40 active:bg-blue-500/50 transition-colors"
+          className="absolute right-0 top-0 bottom-0 w-3 cursor-col-resize z-10 group"
           title="Drag to resize · Double-click to reset"
-        />
+        >
+          <div className="absolute right-0 top-0 bottom-0 w-[3px] group-hover:bg-blue-400/60 group-active:bg-blue-500/70 transition-colors" />
+        </div>
+
+        {/* Collapse / expand toggle button */}
+        <button
+          onClick={() => {
+            const next = isIconOnly ? DEFAULT_WIDTH : MIN_WIDTH
+            setSidebarWidth(next)
+            localStorage.setItem('sidebar:width', String(next))
+          }}
+          title={isIconOnly ? 'Expand sidebar' : 'Collapse sidebar'}
+          className="absolute -right-3 top-[72px] z-20 w-6 h-6 rounded-full bg-white border border-gray-200
+                     shadow-sm flex items-center justify-center text-gray-400 hover:text-gray-700
+                     hover:border-gray-300 transition-colors"
+        >
+          {isIconOnly
+            ? <PanelLeftOpen className="w-3 h-3" />
+            : <PanelLeftClose className="w-3 h-3" />
+          }
+        </button>
       </aside>
 
       {/* Main content */}
@@ -254,7 +277,7 @@ export function AppShell({ session, children }: AppShellProps) {
           </button>
         </div>
         <div className="flex-1 overflow-y-auto">
-          {children}
+          <PeriodProvider>{children}</PeriodProvider>
         </div>
         <SearchOverlay />
       </main>

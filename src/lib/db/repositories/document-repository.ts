@@ -124,6 +124,36 @@ export const DocumentRepository = {
     return count ?? 0
   },
 
+  /**
+   * Returns a renamed_name guaranteed to be unique within the org.
+   * If `baseName` is already taken, appends (2), (3), … until a free slot is found.
+   * Pass `excludeId` to ignore the current document (useful during rename-on-approve).
+   */
+  async uniqueRenamedName(orgId: string, baseName: string, excludeId?: string): Promise<string> {
+    const supabase = await createServerSupabaseClient()
+    const ext = baseName.includes('.') ? '.' + baseName.split('.').pop()! : ''
+    const stem = ext ? baseName.slice(0, -ext.length) : baseName
+
+    let candidate = baseName
+    let counter = 1
+
+    while (true) {
+      let query = supabase
+        .from('documents')
+        .select('id', { count: 'exact', head: true })
+        .eq('org_id', orgId)
+        .eq('renamed_name', candidate)
+
+      if (excludeId) query = query.neq('id', excludeId)
+
+      const { count } = await query
+      if (!count) return candidate
+
+      counter++
+      candidate = `${stem} (${counter})${ext}`
+    }
+  },
+
   /** Find documents with matching content hash (exact duplicate) */
   async findByHash(orgId: string, hash: string): Promise<Document[]> {
     const supabase = await createServerSupabaseClient()

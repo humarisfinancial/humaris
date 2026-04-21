@@ -7,7 +7,7 @@ import { getExtractionProvider } from '@/lib/ai/extraction'
 import { ExtractionRepository } from '@/lib/db/repositories/extraction-repository'
 import { DocumentRepository } from '@/lib/db/repositories/document-repository'
 import { generateRenamedFilename, getFileExtension } from '@/lib/documents/renaming'
-import { classifyDocumentType, getFolderForDocType } from '@/lib/documents/classification'
+import { classifyDocumentType, getFolderForDocType, extractFilenameLabelHint } from '@/lib/documents/classification'
 import { validateExtractedFields } from '@/lib/extraction/validators'
 import { createServerSupabaseClient } from '@/lib/db/server'
 import type { Document, ExtractionStatus, LineItem } from '@/types'
@@ -40,10 +40,30 @@ export async function runExtractionPipeline(
     // 3. Get the extraction provider
     const provider = await getExtractionProvider()
 
-    // 4. Classify document type (AI-based now, overrides filename-based from Sprint 2)
+    // 4. Classify document type (AI-based, falls back to filename-based)
+    // Use a specificity ranking to prevent AI from downgrading a specific filename-based
+    // classification (e.g. revenue_report) to a less specific one (e.g. invoice).
+    const TYPE_SPECIFICITY: Record<string, number> = {
+      financial_statement: 10,
+      revenue_report: 9,
+      bank_statement: 9,
+      payroll_report: 9,
+      expense_report: 8,
+      invoice: 5,
+      receipt: 5,
+      bank_check: 5,
+      spreadsheet: 5,
+      other: 0,
+    }
     let docType = document.doc_type
     try {
-      docType = await provider.classify(fileBuffer, mimeType)
+      const aiDocType = await provider.classify(fileBuffer, mimeType)
+      const currentSpecificity = TYPE_SPECIFICITY[docType ?? ''] ?? 0
+      const aiSpecificity = TYPE_SPECIFICITY[aiDocType ?? ''] ?? 0
+      // Accept AI result only if it's at least as specific as what we already have
+      if (aiDocType && aiSpecificity >= currentSpecificity && aiDocType !== 'other') {
+        docType = aiDocType
+      }
     } catch {
       // Classification failure is non-fatal — keep the existing type
     }
@@ -111,12 +131,16 @@ export async function runExtractionPipeline(
     // Update renamed_name using invoice date + vendor from extraction
     // Use filledFields so we get the transaction_date and vendor_name after defaults are applied
     const ext = getFileExtension(document.original_name)
-    updates.renamed_name = generateRenamedFilename({
+    const filenameHint = extractFilenameLabelHint(document.original_name)
+    const baseName = generateRenamedFilename({
       date: filledFields.transaction_date ?? new Date(),
       docType: docType ?? 'other',
       vendor: filledFields.vendor_name,
+      invoiceNumber: filledFields.invoice_number,
+      originalHint: filenameHint,
       extension: ext,
     })
+    updates.renamed_name = await DocumentRepository.uniqueRenamedName(orgId, baseName, document.id)
 
     await DocumentRepository.update(document.id, orgId, updates)
 
